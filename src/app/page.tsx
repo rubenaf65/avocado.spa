@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
+import esLocale from '@fullcalendar/core/locales/es';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { supabase } from '../lib/supabase';
@@ -78,6 +79,7 @@ export default function Home() {
         </div>
 
         <FullCalendar
+          locale={esLocale}
           plugins={[timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
           headerToolbar={{
@@ -147,3 +149,4 @@ export default function Home() {
     </main>
   );
 }
+
