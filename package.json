@@ -9,10 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@fullcalendar/daygrid": "^6.1.10",
-    "@fullcalendar/interaction": "^6.1.10",
-    "@fullcalendar/react": "^6.1.10",
-    "@fullcalendar/timegrid": "^6.1.10",
+    "@fullcalendar/core": "^6.1.21",
+    "@fullcalendar/daygrid": "^6.1.21",
+    "@fullcalendar/interaction": "^6.1.21",
+    "@fullcalendar/react": "^6.1.21",
+    "@fullcalendar/timegrid": "^6.1.21",
     "@supabase/supabase-js": "^2.39.0",
     "lucide-react": "^0.300.0",
     "next": "^16.3.5",

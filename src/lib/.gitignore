@@ -1,3 +1,0 @@
-echo "node_modules/" >> .gitignore
-echo ".next/" >> .gitignore
-echo ".env.local" >> .gitignore
