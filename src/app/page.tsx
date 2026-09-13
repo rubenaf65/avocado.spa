@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const [events, setEvents] = useState([]);
@@ -65,13 +65,13 @@ export default function Home() {
   };
 
   return (
-    <main class="min-h-screen bg-gray-50 p-8">
-      <div class="max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div class="flex justify-between items-center mb-6">
-          <h1 class="text-2xl font-bold text-gray-800">Control de Citas en Línea</h1>
+    <main className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Control de Citas en Línea</h1>
           <button
             onClick={() => setModalOpen(true)}
-            class="bg-lime-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-lime-700 transition"
+            className="bg-lime-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-lime-700 transition"
           >
             + Nueva Cita
           </button>
@@ -94,49 +94,49 @@ export default function Home() {
 
       {/* Modal para agendar */}
       {modalOpen && (
-        <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div class="bg-white p-6 rounded-xl max-w-md w-full">
-            <h2 class="text-xl font-bold mb-4">Agendar Cita</h2>
-            <form onSubmit={handleSubmit} class="space-y-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-xl max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Agendar Cita</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="text"
                 placeholder="Nombre del Cliente"
                 required
-                class="w-full border p-2 rounded"
+                className="w-full border p-2 rounded"
                 onChange={(e) => setFormData({ ...formData, cliente_nombre: e.target.value })}
               />
               <input
                 type="text"
                 placeholder="Teléfono (WhatsApp ej: 584120000000)"
                 required
-                class="w-full border p-2 rounded"
+                className="w-full border p-2 rounded"
                 onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
               />
-              <div class="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <input
                   type="date"
                   required
                   value={formData.fecha}
-                  class="w-full border p-2 rounded"
+                  className="w-full border p-2 rounded"
                   onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
                 />
                 <input
                   type="time"
                   required
                   value={formData.hora_inicio}
-                  class="w-full border p-2 rounded"
+                  className="w-full border p-2 rounded"
                   onChange={(e) => setFormData({ ...formData, hora_inicio: e.target.value })}
                 />
               </div>
-              <div class="flex justify-end space-x-2 pt-2">
+              <div className="flex justify-end space-x-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  class="px-4 py-2 bg-gray-200 rounded"
+                  className="px-4 py-2 bg-gray-200 rounded"
                 >
                   Cancelar
                 </button>
-                <button type="submit" class="px-4 py-2 bg-lime-600 text-white rounded">
+                <button type="submit" className="px-4 py-2 bg-lime-600 text-white rounded">
                   Agendar
                 </button>
               </div>
