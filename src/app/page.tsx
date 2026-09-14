@@ -15,7 +15,14 @@ const DURACIONES: Record<string, number> = {
 
 export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
+  const [citasRaw, setCitasRaw] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [whatsappModal, setWhatsappModal] = useState<{ open: boolean; url: string; cliente: string } | null>(null);
+  
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [adminLoggedIn, setAdminLoggedIn] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+
   const [formData, setFormData] = useState({
     cliente_nombre: '',
     cliente_telefono: '',
@@ -33,6 +40,7 @@ export default function Home() {
         .neq('estado', 'cancelada');
 
       if (!error && data) {
+        setCitasRaw(data);
         const formattedEvents = data.map((item: any) => {
           let hInicio = item.hora_inicio || '09:00';
           let hFin = item.hora_fin;
@@ -55,7 +63,7 @@ export default function Home() {
           const manicuristaNom = item.manicurista_nombre || 'Manicurista 1';
 
           return {
-            id: String(item.id || Math.random()),
+            id: String(item.id),
             title: clienteNom + ' - ' + servicioNom + ' (' + manicuristaNom + ')',
             start: item.fecha + 'T' + hInicio,
             end: item.fecha + 'T' + hFin,
@@ -101,47 +109,73 @@ export default function Home() {
     });
 
     if (hayChoque) {
-      alert('⚠️ No se puede agendar: La ' + formData.manicurista_nombre + ' ya tiene una cita asignada en ese rango de horario.');
+      alert('⚠️ No se puede agendar: La ' + formData.manicurista_nombre + ' ya tiene una cita asignada en ese rango de horario. Libere el turno primero desde el panel de Admin si la clienta anterior canceló.');
       return;
     }
 
-    const newEvent = {
-      id: Date.now().toString(),
-      title: formData.cliente_nombre + ' - ' + formData.servicio_nombre + ' (' + formData.manicurista_nombre + ')',
-      start: formData.fecha + 'T' + formData.hora_inicio + ':00',
-      end: formData.fecha + 'T' + horaFinCalc + ':00',
-      manicurista: formData.manicurista_nombre,
-      backgroundColor: formData.manicurista_nombre === 'Manicurista 1' ? '#65a30d' : formData.manicurista_nombre === 'Manicurista 2' ? '#0284c7' : '#d97706',
-      textColor: '#ffffff',
-      borderColor: 'transparent'
-    };
-
-    setEvents((prev) => [...prev, newEvent]);
-
     try {
-      await fetch('/api/citas', {
+      const res = await fetch('/api/citas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          cliente_nombre: formData.cliente_nombre,
+          cliente_telefono: formData.cliente_telefono,
+          manicurista_nombre: formData.manicurista_nombre,
+          servicio_nombre: formData.servicio_nombre,
           fecha: formData.fecha,
           hora_inicio: formData.hora_inicio,
-          hora_fin: horaFinCalc
+          hora_fin: horaFinCalc,
+          estado: 'activa'
         })
       });
+
+      if (!res.ok) throw new Error('Error al guardar en base de datos');
     } catch (err) {
       console.error(err);
     }
 
-    alert('¡Cita agendada exitosamente!');
+    fetchCitas();
+
+    const mensajeWp = encodeURIComponent(
+      'Hola *' + formData.cliente_nombre + '*! Te saludamos de *Avocado Spa*. Tu cita para *' + formData.servicio_nombre + '* con la *' + formData.manicurista_nombre + '* ha sido confirmada exitosamente.\n\nFecha: ' + formData.fecha + '\nHora: ' + formData.hora_inicio + '\n\nRecordatorio importante: Te esperamos 5 minutos antes. En caso de no poder asistir, por favor avísanos con anticipación. ¡Te esperamos!'
+    );
+
+    let telLimpio = formData.cliente_telefono.replace(/\D/g, '');
+    const waUrl = 'https://wa.me/' + telLimpio + '?text=' + mensajeWp;
+
     setModalOpen(false);
+    setWhatsappModal({ open: true, url: waUrl, cliente: formData.cliente_nombre });
   };
 
-  const duracionActual = DURACIONES[formData.servicio_nombre] || 120;
-  const duracionTexto = duracionActual === 120 ? '2 Horas' : duracionActual === 100 ? '1 Hora 40 Min' : '3 Horas 40 Min';
+  const handleCancelarCita = async (id: number) => {
+    if (!confirm('¿Estás segura de cancelar esta cita? El turno quedará libre para otra clienta.')) return;
+    try {
+      await supabase
+        .from('citas')
+        .update({ estado: 'cancelada' })
+        .eq('id', id);
 
-  // Hora actual para auto-scroll inicial
+      alert('Cita cancelada con éxito. El horario ha sido liberado.');
+      fetchCitas();
+    } catch (e) {
+      console.error(e);
+      alert('Error al cancelar la cita');
+    }
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassword === 'avocado2026*') {
+      setAdminLoggedIn(true);
+    } else {
+      alert('❌ Clave incorrecta');
+    }
+  };
+
   const now = new Date();
   const currentHourString = String(now.getHours()).padStart(2, '0') + ':00:00';
+  const duracionActual = DURACIONES[formData.servicio_nombre] || 120;
+  const duracionTexto = duracionActual === 120 ? '2 Horas' : duracionActual === 100 ? '1 Hora 40 Min' : '3 Horas 40 Min';
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem' }}>
@@ -151,12 +185,20 @@ export default function Home() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>Control de Citas Avocado Spa</h1>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>🟢 Manicurista 1 | 🔵 Manicurista 2 | 🟠 Manicurista 3</p>
           </div>
-          <button
-            onClick={() => setModalOpen(true)}
-            style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none' }}
-          >
-            + Nueva Cita
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => { setAdminModalOpen(true); setAdminLoggedIn(false); setAdminPassword(''); }}
+              style={{ backgroundColor: '#374151', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none', fontSize: '0.875rem' }}
+            >
+              🔒 Admin
+            </button>
+            <button
+              onClick={() => setModalOpen(true)}
+              style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none' }}
+            >
+              + Nueva Cita
+            </button>
+          </div>
         </div>
 
         <FullCalendar
@@ -276,10 +318,95 @@ export default function Home() {
                   type="submit"
                   style={{ padding: '0.5rem 1rem', backgroundColor: '#65a30d', color: '#ffffff', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontWeight: 500 }}
                 >
-                  Agendar Cita
+                  Agendar y Notificar
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {whatsappModal && whatsappModal.open && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '2rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '0.5rem' }}>¡Cita Agendada con Éxito!</h2>
+            <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '1.5rem' }}>
+              La cita para <strong>{whatsappModal.cliente}</strong> se guardó correctamente. Haz clic abajo para enviar la confirmación y recordatorio por WhatsApp:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <a
+                href={whatsappModal.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ backgroundColor: '#25D366', color: '#ffffff', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontWeight: 'bold', textDecoration: 'none', display: 'block', fontSize: '0.95rem' }}
+              >
+                📲 Enviar WhatsApp a la Clienta
+              </a>
+              <button
+                onClick={() => setWhatsappModal(null)}
+                style={{ backgroundColor: '#f3f4f6', color: '#374151', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+              >
+                Cerrar ventana
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {adminModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '2rem', borderRadius: '0.75rem', maxWidth: '600px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Panel de Administración - Gestión de Citas</h2>
+              <button onClick={() => setAdminModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            {!adminLoggedIn ? (
+              <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem 0' }}>
+                <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: 0 }}>Introduce la clave de administración para liberar turnos o cancelar citas:</p>
+                <div>
+                  <input
+                    type="password"
+                    placeholder="Clave de administrador"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    required
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.75rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  style={{ backgroundColor: '#374151', color: '#ffffff', padding: '0.75rem', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+                >
+                  Ingresar al Panel
+                </button>
+              </form>
+            ) : (
+              <div>
+                <p style={{ fontSize: '0.875rem', color: '#059669', marginBottom: '1rem', fontWeight: 500 }}>🔓 Sesión iniciada correctamente. Citas activas:</p>
+                {citasRaw.length === 0 ? (
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', textAlign: 'center', padding: '2rem 0' }}>No hay citas registradas en este momento.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {citasRaw.map((cita) => (
+                      <div key={cita.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+                        <div>
+                          <p style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>{cita.cliente_nombre} - {cita.servicio_nombre}</p>
+                          <p style={{ fontSize: '0.75rem', color: '#4b5563', margin: '0.2rem 0 0 0' }}>👤 {cita.manicurista_nombre} | 📅 {cita.fecha} | ⏰ {cita.hora_inicio}</p>
+                        </div>
+                        <button
+                          onClick={() => handleCancelarCita(cita.id)}
+                          style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}
+                        >
+                          Liberar Turno (Cancelar)
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
