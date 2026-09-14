@@ -20,50 +20,22 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const {
-      cliente_nombre,
-      cliente_telefono,
-      fecha,
-      hora_inicio,
-      hora_fin,
-      duracion_minutos
-    } = body;
+    const { fecha, hora_inicio, hora_fin } = body;
 
-    // Intentar primero insertar en esquema relacional (con IDs por defecto para omitir claves foráneas estrictas)
-    const payloadRelacional: any = {
+    // Solo enviamos las columnas base que existen sí o sí en tu esquema de Supabase
+    const payloadMinimal: any = {
       fecha,
       hora_inicio,
       hora_fin,
-      duracion_minutos: duracion_minutos || 120,
-      estado: 'confirmada',
-      cliente_id: 1,
-      especialista_id: 1,
-      servicio_id: 1
+      estado: 'confirmada'
     };
 
     const { data, error } = await supabase
       .from('citas')
-      .insert([payloadRelacional])
+      .insert([payloadMinimal])
       .select();
 
-    if (error) {
-      // Si falla por falta de cliente_id, probar estructura simplificada
-      const payloadDirecto: any = {
-        fecha,
-        hora_inicio,
-        hora_fin,
-        duracion_minutos: duracion_minutos || 120,
-        estado: 'confirmada'
-      };
-
-      const { data: dataDirecta, error: errorDirecto } = await supabase
-        .from('citas')
-        .insert([payloadDirecto])
-        .select();
-
-      if (errorDirecto) throw errorDirecto;
-      return NextResponse.json(dataDirecta[0] || { success: true });
-    }
+    if (error) throw error;
 
     return NextResponse.json(data[0] || { success: true });
   } catch (err: any) {
