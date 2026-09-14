@@ -48,9 +48,9 @@ export default function Home() {
           hFin += ':00';
         }
 
-        const clienteNom = item.cliente_nombre || 'Cliente';
-        const servicioNom = item.servicio_nombre || 'Servicio';
-        const manicuristaNom = item.manicurista_nombre || 'Manicurista';
+        const clienteNom = item.cliente_nombre || item.clientes?.nombre || 'Cliente';
+        const servicioNom = item.servicio_nombre || item.servicios?.nombre || 'Servicio';
+        const manicuristaNom = item.manicurista_nombre || 'Manicurista 1';
 
         return {
           id: String(item.id),
@@ -78,21 +78,13 @@ export default function Home() {
     const totalMin = h * 60 + m + duracionMin;
     const horaFinCalc = String(Math.floor(totalMin / 60) % 24).padStart(2, '0') + ':' + String(totalMin % 60).padStart(2, '0');
 
-    const newEvent = {
-      id: Date.now().toString(),
-      title: formData.cliente_nombre + ' - ' + formData.servicio_nombre + ' (' + formData.manicurista_nombre + ')',
-      start: formData.fecha + 'T' + formData.hora_inicio + ':00',
-      end: formData.fecha + 'T' + horaFinCalc + ':00',
-      backgroundColor: '#84cc16',
-      textColor: '#ffffff',
-      borderColor: '#65a30d'
-    };
-
-    // Actualización inmediata en el calendario local
-    setEvents((prev) => [...prev, newEvent]);
-
     const payload = {
-      ...formData,
+      cliente_nombre: formData.cliente_nombre,
+      cliente_telefono: formData.cliente_telefono,
+      manicurista_nombre: formData.manicurista_nombre || 'Manicurista 1',
+      servicio_nombre: formData.servicio_nombre || 'Manicure',
+      fecha: formData.fecha,
+      hora_inicio: formData.hora_inicio,
       hora_fin: horaFinCalc,
       duracion_minutos: duracionMin
     };
@@ -103,13 +95,14 @@ export default function Home() {
       body: JSON.stringify(payload)
     });
 
+    const data = await res.json();
+
     if (res.ok) {
-      alert('¡Cita agendada exitosamente!');
+      alert('¡Cita agendada exitosamente en la base de datos!');
       setModalOpen(false);
       fetchCitas();
     } else {
-      alert('La cita se pintó en pantalla, pero verifica la API /api/citas');
-      setModalOpen(false);
+      alert('Error en API: ' + (data.error || 'No se pudo guardar la cita'));
     }
   };
 
