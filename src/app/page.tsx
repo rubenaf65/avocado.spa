@@ -1,9 +1,9 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import esLocale from '@fullcalendar/core/locales/es';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import esLocale from '@fullcalendar/core/locales/es';
 import { supabase } from '../lib/supabase';
 
 export default function Home() {
@@ -22,23 +22,30 @@ export default function Home() {
   const fetchCitas = async () => {
     const { data, error } = await supabase
       .from('citas')
-      .select(`
-        id, fecha, hora_inicio, hora_fin, estado,
-        clientes (nombre, telefono),
-        servicios (nombre)
-      `)
+      .select('id, fecha, hora_inicio, hora_fin, estado, clientes (nombre, telefono), servicios (nombre)')
       .neq('estado', 'cancelada');
 
     if (!error && data) {
-      const formattedEvents = data.map((item: any) => ({
-        id: item.id,
-        title: `Cita con ${item.clientes?.nombre || 'Cliente'} (${item.servicios?.nombre})`,
-        start: `${item.fecha}T${item.hora_inicio}`,
-        end: `${item.fecha}T${item.hora_fin}`,
-        backgroundColor: '#d9f99d',
-        textColor: '#365314',
-        borderColor: '#84cc16'
-      }));
+      const formattedEvents = data.map((item: any) => {
+        const horaInicioFix = item.hora_inicio && item.hora_inicio.length === 5 ? item.hora_inicio + ':00' : item.hora_inicio;
+        const horaFinFix = item.hora_fin && item.hora_fin.length === 5 ? item.hora_fin + ':00' : item.hora_fin;
+
+        const clienteObj = Array.isArray(item.clientes) ? item.clientes[0] : item.clientes;
+        const servicioObj = Array.isArray(item.servicios) ? item.servicios[0] : item.servicios;
+
+        const clienteNom = clienteObj?.nombre || 'Cliente';
+        const servicioNom = servicioObj?.nombre || 'Servicio';
+
+        return {
+          id: item.id,
+          title: 'Cita con ' + clienteNom + ' (' + servicioNom + ')',
+          start: item.fecha + 'T' + horaInicioFix,
+          end: item.fecha + 'T' + horaFinFix,
+          backgroundColor: '#d9f99d',
+          textColor: '#365314',
+          borderColor: '#84cc16'
+        };
+      });
       setEvents(formattedEvents);
     }
   };
@@ -61,7 +68,7 @@ export default function Home() {
       setModalOpen(false);
       fetchCitas();
     } else {
-      alert(data.error);
+      alert(data.error || 'Ocurrió un error al agendar la cita');
     }
   };
 
@@ -79,13 +86,18 @@ export default function Home() {
         </div>
 
         <FullCalendar
-          locale={esLocale}
           plugins={[timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
+          locale={esLocale}
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
             right: 'timeGridWeek,timeGridDay'
+          }}
+          buttonText={{
+            today: 'Hoy',
+            week: 'Semana',
+            day: 'Día'
           }}
           slotMinTime="07:00:00"
           slotMaxTime="18:00:00"
@@ -94,7 +106,6 @@ export default function Home() {
         />
       </div>
 
-      {/* Modal para agendar */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-xl max-w-md w-full">
@@ -149,4 +160,3 @@ export default function Home() {
     </main>
   );
 }
-
