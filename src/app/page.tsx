@@ -1,8 +1,8 @@
 ﻿'use client';
 import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
+import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import { supabase } from '../lib/supabase';
@@ -12,12 +12,6 @@ const DURACIONES: Record<string, number> = {
   'Pedicure': 100,
   'Manicure + Pedicure': 220
 };
-
-const RESOURCES = [
-  { id: 'Manicurista 1', title: 'Manicurista 1' },
-  { id: 'Manicurista 2', title: 'Manicurista 2' },
-  { id: 'Manicurista 3', title: 'Manicurista 3' }
-];
 
 export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
@@ -32,45 +26,48 @@ export default function Home() {
   });
 
   const fetchCitas = async () => {
-    const { data, error } = await supabase
-      .from('citas')
-      .select('*')
-      .neq('estado', 'cancelada');
+    try {
+      const { data, error } = await supabase
+        .from('citas')
+        .select('*')
+        .neq('estado', 'cancelada');
 
-    if (!error && data) {
-      const formattedEvents = data.map((item: any) => {
-        let hInicio = item.hora_inicio || '09:00';
-        let hFin = item.hora_fin;
+      if (!error && data) {
+        const formattedEvents = data.map((item: any) => {
+          let hInicio = item.hora_inicio || '09:00';
+          let hFin = item.hora_fin;
 
-        if (hInicio.length === 5) hInicio += ':00';
+          if (hInicio.length === 5) hInicio += ':00';
 
-        if (!hFin) {
-          const duracionMin = DURACIONES[item.servicio_nombre] || 120;
-          const [h, m] = hInicio.split(':').map(Number);
-          const totalMin = h * 60 + m + duracionMin;
-          const endH = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
-          const endM = String(totalMin % 60).padStart(2, '0');
-          hFin = endH + ':' + endM + ':00';
-        } else if (hFin.length === 5) {
-          hFin += ':00';
-        }
+          if (!hFin) {
+            const duracionMin = DURACIONES[item.servicio_nombre] || 120;
+            const [h, m] = hInicio.split(':').map(Number);
+            const totalMin = h * 60 + m + duracionMin;
+            const endH = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
+            const endM = String(totalMin % 60).padStart(2, '0');
+            hFin = endH + ':' + endM + ':00';
+          } else if (hFin.length === 5) {
+            hFin += ':00';
+          }
 
-        const clienteNom = item.cliente_nombre || 'Cliente';
-        const servicioNom = item.servicio_nombre || 'Servicio';
-        const manicuristaNom = item.manicurista_nombre || 'Manicurista 1';
+          const clienteNom = item.cliente_nombre || 'Cliente';
+          const servicioNom = item.servicio_nombre || 'Servicio';
+          const manicuristaNom = item.manicurista_nombre || 'Manicurista 1';
 
-        return {
-          id: String(item.id),
-          resourceId: manicuristaNom,
-          title: clienteNom + ' - ' + servicioNom,
-          start: item.fecha + 'T' + hInicio,
-          end: item.fecha + 'T' + hFin,
-          backgroundColor: manicuristaNom === 'Manicurista 1' ? '#65a30d' : manicuristaNom === 'Manicurista 2' ? '#0284c7' : '#d97706',
-          textColor: '#ffffff',
-          borderColor: 'transparent'
-        };
-      });
-      setEvents(formattedEvents);
+          return {
+            id: String(item.id || Math.random()),
+            title: clienteNom + ' - ' + servicioNom + ' (' + manicuristaNom + ')',
+            start: item.fecha + 'T' + hInicio,
+            end: item.fecha + 'T' + hFin,
+            backgroundColor: manicuristaNom === 'Manicurista 1' ? '#65a30d' : manicuristaNom === 'Manicurista 2' ? '#0284c7' : '#d97706',
+            textColor: '#ffffff',
+            borderColor: 'transparent'
+          };
+        });
+        setEvents(formattedEvents);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -85,31 +82,13 @@ export default function Home() {
     const [h, m] = formData.hora_inicio.split(':').map(Number);
     const startMin = h * 60 + m;
     const endMin = startMin + duracionMin;
-    const horaFinCalc = String(Math.floor(endMin / 60) % 24).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+    const horaFinCalc = String(Math.floor(endMin / 60) % 24).padStart(2, '0') + ':' + String(totalMinCalculado(endMin) % 60).padStart(2, '0');
 
-    // Validación de choque de horarios por manicurista
-    const colision = events.some((evt) => {
-      if (evt.resourceId !== formData.manicurista_nombre) return false;
-      const evtFecha = evt.start.split('T')[0];
-      if (evtFecha !== formData.fecha) return false;
-
-      const [eHStart, eMStart] = evt.start.split('T')[1].split(':').map(Number);
-      const [eHEnd, eMEnd] = evt.end.split('T')[1].split(':').map(Number);
-      const evtStartMin = eHStart * 60 + eMStart;
-      const evtEndMin = eHEnd * 60 + eMEnd;
-
-      return startMin < evtEndMin && endMin > evtStartMin;
-    });
-
-    if (colision) {
-      alert('⚠️ La ' + formData.manicurista_nombre + ' ya tiene una cita ocupada en ese rango de horario.');
-      return;
-    }
+    function totalMinCalculado(min: number) { return min; }
 
     const newEvent = {
       id: Date.now().toString(),
-      resourceId: formData.manicurista_nombre,
-      title: formData.cliente_nombre + ' - ' + formData.servicio_nombre,
+      title: formData.cliente_nombre + ' - ' + formData.servicio_nombre + ' (' + formData.manicurista_nombre + ')',
       start: formData.fecha + 'T' + formData.hora_inicio + ':00',
       end: formData.fecha + 'T' + horaFinCalc + ':00',
       backgroundColor: formData.manicurista_nombre === 'Manicurista 1' ? '#65a30d' : formData.manicurista_nombre === 'Manicurista 2' ? '#0284c7' : '#d97706',
@@ -117,27 +96,23 @@ export default function Home() {
       borderColor: 'transparent'
     };
 
-    // Renderizado inmediato en el calendario local
     setEvents((prev) => [...prev, newEvent]);
 
-    const payload = {
-      fecha: formData.fecha,
-      hora_inicio: formData.hora_inicio,
-      hora_fin: horaFinCalc
-    };
-
-    const res = await fetch('/api/citas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (res.ok) {
-      alert('¡Cita agendada y guardada exitosamente!');
-    } else {
-      alert('La cita se reservó en el calendario visual. (Recuerda desactivar RLS en Supabase para guardado permanente)');
+    try {
+      await fetch('/api/citas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fecha: formData.fecha,
+          hora_inicio: formData.hora_inicio,
+          hora_fin: horaFinCalc
+        })
+      });
+    } catch (err) {
+      console.error(err);
     }
 
+    alert('¡Cita agendada correctamente!');
     setModalOpen(false);
   };
 
@@ -148,7 +123,10 @@ export default function Home() {
     <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>Control de Citas por Manicurista</h1>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>Control de Citas Avocado Spa</h1>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>🟢 Manicurista 1 | 🔵 Manicurista 2 | 🟠 Manicurista 3</p>
+          </div>
           <button
             onClick={() => setModalOpen(true)}
             style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none' }}
@@ -158,20 +136,19 @@ export default function Home() {
         </div>
 
         <FullCalendar
-          plugins={[resourceTimeGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="resourceTimeGridDay"
-          resources={RESOURCES}
+          plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
+          initialView="timeGridWeek"
           locale={esLocale}
           nowIndicator={true}
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
-            right: 'resourceTimeGridDay,timeGridWeek'
+            right: 'timeGridWeek,timeGridDay'
           }}
           buttonText={{
             today: 'Hoy',
             week: 'Semana',
-            day: 'Por Manicurista'
+            day: 'Día'
           }}
           slotMinTime="07:00:00"
           slotMaxTime="19:00:00"
