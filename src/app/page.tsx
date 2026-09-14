@@ -58,9 +58,9 @@ export default function Home() {
             hFin += ':00';
           }
 
-          const clienteNom = item.cliente_nombre || 'Cliente';
-          const servicioNom = item.servicio_nombre || 'Servicio';
-          const manicuristaNom = item.manicurista_nombre || 'Manicurista 1';
+          const clienteNom = item.cliente_nombre || item.nombre || 'Cliente';
+          const servicioNom = item.servicio_nombre || item.servicio || 'Servicio';
+          const manicuristaNom = item.manicurista_nombre || item.manicurista || 'Manicurista 1';
 
           return {
             id: String(item.id),
@@ -389,20 +389,25 @@ export default function Home() {
                   <p style={{ fontSize: '0.875rem', color: '#6b7280', textAlign: 'center', padding: '2rem 0' }}>No hay citas registradas en este momento.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {citasRaw.map((cita) => (
-                      <div key={cita.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
-                        <div>
-                          <p style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>{cita.cliente_nombre} - {cita.servicio_nombre}</p>
-                          <p style={{ fontSize: '0.75rem', color: '#4b5563', margin: '0.2rem 0 0 0' }}>👤 {cita.manicurista_nombre} | 📅 {cita.fecha} | ⏰ {cita.hora_inicio}</p>
+                    {citasRaw.map((cita) => {
+                      const nombreCliente = cita.cliente_nombre || cita.nombre || 'Sin nombre';
+                      const nombreServicio = cita.servicio_nombre || cita.servicio || 'Servicio';
+                      const nombreManicurista = cita.manicurista_nombre || cita.manicurista || 'Manicurista 1';
+                      return (
+                        <div key={cita.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+                          <div>
+                            <p style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>{nombreCliente} - {nombreServicio}</p>
+                            <p style={{ fontSize: '0.75rem', color: '#4b5563', margin: '0.2rem 0 0 0' }}>👤 {nombreManicurista} | 📅 {cita.fecha} | ⏰ {cita.hora_inicio}</p>
+                          </div>
+                          <button
+                            onClick={() => handleCancelarCita(cita.id)}
+                            style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}
+                          >
+                            Liberar Turno (Cancelar)
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleCancelarCita(cita.id)}
-                          style={{ backgroundColor: '#dc2626', color: '#ffffff', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}
-                        >
-                          Liberar Turno (Cancelar)
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
