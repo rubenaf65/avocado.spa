@@ -59,6 +59,7 @@ export default function Home() {
             title: clienteNom + ' - ' + servicioNom + ' (' + manicuristaNom + ')',
             start: item.fecha + 'T' + hInicio,
             end: item.fecha + 'T' + hFin,
+            manicurista: manicuristaNom,
             backgroundColor: manicuristaNom === 'Manicurista 1' ? '#65a30d' : manicuristaNom === 'Manicurista 2' ? '#0284c7' : '#d97706',
             textColor: '#ffffff',
             borderColor: 'transparent'
@@ -82,15 +83,34 @@ export default function Home() {
     const [h, m] = formData.hora_inicio.split(':').map(Number);
     const startMin = h * 60 + m;
     const endMin = startMin + duracionMin;
-    const horaFinCalc = String(Math.floor(endMin / 60) % 24).padStart(2, '0') + ':' + String(totalMinCalculado(endMin) % 60).padStart(2, '0');
+    const endH = String(Math.floor(endMin / 60) % 24).padStart(2, '0');
+    const endM = String(endMin % 60).padStart(2, '0');
+    const horaFinCalc = endH + ':' + endM;
 
-    function totalMinCalculado(min: number) { return min; }
+    const hayChoque = events.some((evt) => {
+      if (evt.manicurista !== formData.manicurista_nombre) return false;
+      const evtFecha = evt.start.split('T')[0];
+      if (evtFecha !== formData.fecha) return false;
+
+      const [eHStart, eMStart] = evt.start.split('T')[1].split(':').map(Number);
+      const [eHEnd, eMEnd] = evt.end.split('T')[1].split(':').map(Number);
+      const evtStartMin = eHStart * 60 + eMStart;
+      const evtEndMin = eHEnd * 60 + eMEnd;
+
+      return startMin < evtEndMin && endMin > evtStartMin;
+    });
+
+    if (hayChoque) {
+      alert('⚠️ No se puede agendar: La ' + formData.manicurista_nombre + ' ya tiene una cita asignada en ese rango de horario.');
+      return;
+    }
 
     const newEvent = {
       id: Date.now().toString(),
       title: formData.cliente_nombre + ' - ' + formData.servicio_nombre + ' (' + formData.manicurista_nombre + ')',
       start: formData.fecha + 'T' + formData.hora_inicio + ':00',
       end: formData.fecha + 'T' + horaFinCalc + ':00',
+      manicurista: formData.manicurista_nombre,
       backgroundColor: formData.manicurista_nombre === 'Manicurista 1' ? '#65a30d' : formData.manicurista_nombre === 'Manicurista 2' ? '#0284c7' : '#d97706',
       textColor: '#ffffff',
       borderColor: 'transparent'
@@ -112,12 +132,16 @@ export default function Home() {
       console.error(err);
     }
 
-    alert('¡Cita agendada correctamente!');
+    alert('¡Cita agendada exitosamente!');
     setModalOpen(false);
   };
 
   const duracionActual = DURACIONES[formData.servicio_nombre] || 120;
   const duracionTexto = duracionActual === 120 ? '2 Horas' : duracionActual === 100 ? '1 Hora 40 Min' : '3 Horas 40 Min';
+
+  // Hora actual para auto-scroll inicial
+  const now = new Date();
+  const currentHourString = String(now.getHours()).padStart(2, '0') + ':00:00';
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem' }}>
@@ -140,6 +164,7 @@ export default function Home() {
           initialView="timeGridWeek"
           locale={esLocale}
           nowIndicator={true}
+          scrollTime={currentHourString}
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',

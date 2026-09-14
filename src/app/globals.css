@@ -1,0 +1,15 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos de la franja roja de tiempo en tiempo real */
+.fc-timegrid-now-indicator-line {
+  border-color: #ef4444 !important;
+  border-width: 2px !important;
+  z-index: 10 !important;
+}
+
+.fc-timegrid-now-indicator-arrow {
+  border-color: #ef4444 !important;
+  border-width: 6px !important;
+}
