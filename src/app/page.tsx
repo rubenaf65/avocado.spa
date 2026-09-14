@@ -13,15 +13,13 @@ const DURACIONES: Record<string, number> = {
 };
 
 export default function Home() {
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     cliente_nombre: '',
     cliente_telefono: '',
-    especialista_id: '1',
     manicurista_nombre: 'Manicurista 1',
     servicio_nombre: 'Manicure',
-    servicio_id: '1',
     fecha: new Date().toISOString().split('T')[0],
     hora_inicio: '10:00'
   });
@@ -29,7 +27,7 @@ export default function Home() {
   const fetchCitas = async () => {
     const { data, error } = await supabase
       .from('citas')
-      .select('id, fecha, hora_inicio, hora_fin, estado, cliente_nombre, manicurista_nombre, servicio_nombre, clientes (nombre, telefono), servicios (nombre)')
+      .select('*')
       .neq('estado', 'cancelada');
 
     if (!error && data) {
@@ -50,15 +48,12 @@ export default function Home() {
           hFin += ':00';
         }
 
-        const clienteObj = Array.isArray(item.clientes) ? item.clientes[0] : item.clientes;
-        const servicioObj = Array.isArray(item.servicios) ? item.servicios[0] : item.servicios;
-
-        const clienteNom = item.cliente_nombre || clienteObj?.nombre || 'Cliente';
-        const servicioNom = item.servicio_nombre || servicioObj?.nombre || 'Manicure';
-        const manicuristaNom = item.manicurista_nombre || 'Especialista';
+        const clienteNom = item.cliente_nombre || 'Cliente';
+        const servicioNom = item.servicio_nombre || 'Servicio';
+        const manicuristaNom = item.manicurista_nombre || 'Manicurista';
 
         return {
-          id: item.id,
+          id: String(item.id),
           title: clienteNom + ' - ' + servicioNom + ' (' + manicuristaNom + ')',
           start: item.fecha + 'T' + hInicio,
           end: item.fecha + 'T' + hFin,
@@ -83,6 +78,19 @@ export default function Home() {
     const totalMin = h * 60 + m + duracionMin;
     const horaFinCalc = String(Math.floor(totalMin / 60) % 24).padStart(2, '0') + ':' + String(totalMin % 60).padStart(2, '0');
 
+    const newEvent = {
+      id: Date.now().toString(),
+      title: formData.cliente_nombre + ' - ' + formData.servicio_nombre + ' (' + formData.manicurista_nombre + ')',
+      start: formData.fecha + 'T' + formData.hora_inicio + ':00',
+      end: formData.fecha + 'T' + horaFinCalc + ':00',
+      backgroundColor: '#84cc16',
+      textColor: '#ffffff',
+      borderColor: '#65a30d'
+    };
+
+    // Actualización inmediata en el calendario local
+    setEvents((prev) => [...prev, newEvent]);
+
     const payload = {
       ...formData,
       hora_fin: horaFinCalc,
@@ -95,13 +103,13 @@ export default function Home() {
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
     if (res.ok) {
       alert('¡Cita agendada exitosamente!');
       setModalOpen(false);
       fetchCitas();
     } else {
-      alert(data.error || 'Ocurrió un error al agendar la cita');
+      alert('La cita se pintó en pantalla, pero verifica la API /api/citas');
+      setModalOpen(false);
     }
   };
 
@@ -109,13 +117,13 @@ export default function Home() {
   const duracionTexto = duracionActual === 120 ? '2 Horas' : duracionActual === 100 ? '1 Hora 40 Min' : '3 Horas 40 Min';
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Control de Citas en Línea</h1>
+    <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>Control de Citas en Línea</h1>
           <button
             onClick={() => setModalOpen(true)}
-            className="bg-lime-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-lime-700 transition"
+            style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none' }}
           >
             + Nueva Cita
           </button>
@@ -144,37 +152,37 @@ export default function Home() {
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-xl max-w-md w-full shadow-2xl border border-gray-200">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Agendar Cita</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '0.75rem', maxWidth: '400px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', color: '#111827' }}>Agendar Cita</h2>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre de la Clienta</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Nombre de la Clienta</label>
                 <input
                   type="text"
                   placeholder="Ej: María Pérez"
                   required
-                  className="w-full border border-gray-300 p-2 rounded-lg text-sm text-gray-800"
+                  style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
                   onChange={(e) => setFormData({ ...formData, cliente_nombre: e.target.value })}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono (WhatsApp)</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Teléfono (WhatsApp)</label>
                 <input
                   type="text"
                   placeholder="Ej: 584120000000"
                   required
-                  className="w-full border border-gray-300 p-2 rounded-lg text-sm text-gray-800"
+                  style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
                   onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Manicurista</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Manicurista</label>
                   <select
-                    className="w-full border border-gray-300 p-2 rounded-lg text-sm text-gray-800 bg-white"
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#fff' }}
                     value={formData.manicurista_nombre}
                     onChange={(e) => setFormData({ ...formData, manicurista_nombre: e.target.value })}
                   >
@@ -185,9 +193,9 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Servicio</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Servicio</label>
                   <select
-                    className="w-full border border-gray-300 p-2 rounded-lg text-sm text-gray-800 bg-white"
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#fff' }}
                     value={formData.servicio_nombre}
                     onChange={(e) => setFormData({ ...formData, servicio_nombre: e.target.value })}
                   >
@@ -198,44 +206,44 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Fecha</label>
                   <input
                     type="date"
                     required
                     value={formData.fecha}
-                    className="w-full border border-gray-300 p-2 rounded-lg text-sm text-gray-800"
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
                     onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Hora Inicio</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Hora Inicio</label>
                   <input
                     type="time"
                     required
                     value={formData.hora_inicio}
-                    className="w-full border border-gray-300 p-2 rounded-lg text-sm text-gray-800"
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
                     onChange={(e) => setFormData({ ...formData, hora_inicio: e.target.value })}
                   />
                 </div>
               </div>
 
-              <p className="text-xs text-gray-700 bg-lime-50 p-2.5 rounded-lg border border-lime-200">
+              <p style={{ fontSize: '0.75rem', color: '#3f6212', backgroundColor: '#ecfccb', padding: '0.5rem', borderRadius: '0.375rem', margin: 0 }}>
                 📌 Duración estimada: <strong>{duracionTexto}</strong>
               </p>
 
-              <div className="flex justify-end space-x-2 pt-3">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                  style={{ padding: '0.5rem 1rem', backgroundColor: '#e5e7eb', color: '#374151', borderRadius: '0.375rem', border: 'none', cursor: 'pointer' }}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-lime-600 text-white rounded-lg text-sm font-medium hover:bg-lime-700"
+                  style={{ padding: '0.5rem 1rem', backgroundColor: '#65a30d', color: '#ffffff', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontWeight: 500 }}
                 >
                   Agendar Cita
                 </button>
