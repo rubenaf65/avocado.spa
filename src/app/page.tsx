@@ -147,6 +147,13 @@ export default function Home() {
     <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '0.75rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
         
+        {/* Leyenda de Colores */}
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', fontSize: '0.85rem', fontWeight: 600 }}>
+          <span style={{ color: '#22c55e' }}>● Manicurista 1</span>
+          <span style={{ color: '#3b82f6' }}>● Manicurista 2</span>
+          <span style={{ color: '#f97316' }}>● Manicurista 3</span>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Control de Citas Avocado Spa</h1>
           <button
@@ -165,16 +172,15 @@ export default function Home() {
             locale={esLocale}
             nowIndicator={true}
             height="auto"
-            contentHeight="auto"
             headerToolbar={{
               left: 'prev,next today',
               center: 'title',
-              right: 'resourceTimeGridDay,timeGridWeek,timeGridDay'
+              right: 'resourceTimeGridDay,timeGridWeek'
             }}
             buttonText={{
               today: 'Hoy',
-              week: 'Semana',
-              day: 'Día'
+              resourceTimeGridDay: 'Por Manicurista',
+              timeGridWeek: 'Vista Semanal'
             }}
             slotMinTime="07:00:00"
             slotMaxTime="19:00:00"
@@ -186,7 +192,7 @@ export default function Home() {
 
       {modalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
-          <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#111827' }}>Agendar Cita</h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
