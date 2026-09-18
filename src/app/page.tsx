@@ -173,7 +173,6 @@ export default function Home() {
     <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '0.75rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
         
-        {/* Leyenda y Control de Sesión Admin */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>
             <span style={{ color: '#22c55e' }}>● Manicurista 1</span>
@@ -185,7 +184,7 @@ export default function Home() {
             onClick={() => setAdminModalOpen(true)}
             style={{ backgroundColor: isAdmin ? '#1e293b' : '#475569', color: '#ffffff', padding: '0.4rem 0.8rem', borderRadius: '0.375rem', border: 'none', fontSize: '0.85rem', cursor: 'pointer' }}
           >
-            {isAdmin ? '🔓 Modos Admin' : '🔒 Admin'}
+            {isAdmin ? '🔓 Modo Admin' : '🔒 Admin'}
           </button>
         </div>
 
@@ -225,7 +224,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Modal de Ingreso Admin */}
       {adminModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '350px', width: '100%' }}>
@@ -261,7 +259,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Modal Agendar Cita */}
       {modalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
