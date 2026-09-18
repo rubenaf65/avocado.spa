@@ -2,15 +2,29 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { password } = await request.json();
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const body = await request.json();
+    const inputPassword = body?.password ? String(body.password).trim() : '';
 
-    if (password === adminPassword) {
-      return NextResponse.json({ success: true, message: 'Acceso concedido' }, { status: 200 });
-    } else {
-      return NextResponse.json({ success: false, message: 'Contraseña incorrecta' }, { status: 401 });
+    // Obtiene la clave configurada en las variables de entorno (.env.local o Vercel)
+    const envPassword = process.env.ADMIN_PASSWORD || process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123';
+    const targetPassword = String(envPassword).trim();
+
+    if (inputPassword && inputPassword === targetPassword) {
+      return NextResponse.json(
+        { success: true, message: 'Acceso concedido' },
+        { status: 200 }
+      );
     }
-  } catch {
-    return NextResponse.json({ success: false, message: 'Error en el servidor' }, { status: 500 });
+
+    return NextResponse.json(
+      { success: false, message: 'Contraseña incorrecta' },
+      { status: 401 }
+    );
+  } catch (error) {
+    console.error('Error en /api/admin/login:', error);
+    return NextResponse.json(
+      { success: false, message: 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
 }
