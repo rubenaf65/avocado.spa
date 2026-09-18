@@ -1,11 +1,13 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
-import FullCalendar from '@fullcalendar/react';
-import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
+import dynamic from 'next/dynamic';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import { supabase } from '../lib/supabase';
+
+const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
 
 const OBTENER_COLOR_MANICURISTA = (manicurista: string) => {
   const nombre = manicurista?.toLowerCase().trim() || '';
@@ -200,27 +202,26 @@ export default function Home() {
 
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <FullCalendar
-            plugins={[resourceTimeGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="resourceTimeGridDay"
-            resources={RESOURCES}
-            locale={esLocale}
-            nowIndicator={true}
-            height="auto"
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'resourceTimeGridDay,timeGridWeek'
-            }}
-            buttonText={{
-              today: 'Hoy',
-              resourceTimeGridDay: 'Por Manicurista',
-              timeGridWeek: 'Vista Semanal'
-            }}
-            slotMinTime="07:00:00"
-            slotMaxTime="19:00:00"
-            allDaySlot={false}
-            events={events}
-          />
+  plugins={[timeGridPlugin, interactionPlugin]}
+  initialView="timeGridWeek"
+  locale={esLocale}
+  nowIndicator={true}
+  height="auto"
+  headerToolbar={{
+    left: 'prev,next today',
+    center: 'title',
+    right: 'timeGridDay,timeGridWeek'
+  }}
+  buttonText={{
+    today: 'Hoy',
+    timeGridDay: 'Día',
+    timeGridWeek: 'Semana'
+  }}
+  slotMinTime="07:00:00"
+  slotMaxTime="19:00:00"
+  allDaySlot={false}
+  events={events}
+/>
         </div>
       </div>
 
