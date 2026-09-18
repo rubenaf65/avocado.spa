@@ -1,4 +1,6 @@
-﻿@import "tailwindcss";
+﻿@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 /* Estilos de la franja roja de tiempo en tiempo real */
 .fc-timegrid-now-indicator-line {
