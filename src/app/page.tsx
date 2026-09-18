@@ -23,12 +23,6 @@ const DURACIONES: Record<string, number> = {
   'Manicure + Pedicure': 220
 };
 
-const RESOURCES = [
-  { id: 'Manicurista 1', title: 'Manicurista 1' },
-  { id: 'Manicurista 2', title: 'Manicurista 2' },
-  { id: 'Manicurista 3', title: 'Manicurista 3' }
-];
-
 export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,9 +35,16 @@ export default function Home() {
     cliente_telefono: '',
     manicurista_nombre: 'Manicurista 1',
     servicio_nombre: 'Manicure',
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: '',
     hora_inicio: '10:00'
   });
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      fecha: new Date().toISOString().split('T')[0]
+    }));
+  }, []);
 
   const fetchCitas = async () => {
     const { data, error } = await supabase
@@ -64,7 +65,7 @@ export default function Home() {
           const totalMin = h * 60 + m + duracionMin;
           const endH = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
           const endM = String(totalMin % 60).padStart(2, '0');
-          hFin = endH + ':' + endM + ':00';
+          hFin = `${endH}:${endM}:00`;
         } else if (hFin.length === 5) {
           hFin += ':00';
         }
@@ -93,37 +94,37 @@ export default function Home() {
     fetchCitas();
   }, []);
 
-  const handleAdminLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleAdminAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const cleanPassword = inputPassword ? inputPassword.trim() : '';
+    const cleanPassword = adminPasswordInput ? adminPasswordInput.trim() : '';
 
-  if (!cleanPassword) {
-    alert('Por favor, ingresa la contraseña de administrador.');
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: cleanPassword }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok && data.success) {
-      setIsAdmin(true);
-      setShowModal(false);
-      setInputPassword('');
-    } else {
-      alert(data.message || 'Contraseña incorrecta');
+    if (!cleanPassword) {
+      alert('Por favor, ingresa la contraseña de administrador.');
+      return;
     }
-  } catch (error) {
-    console.error('Error al autenticar admin:', error);
-    alert('Ocurrió un error de red al intentar iniciar sesión.');
-  }
-};
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: cleanPassword }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setIsAdmin(true);
+        setAdminModalOpen(false);
+        setAdminPasswordInput('');
+      } else {
+        alert(data.message || 'Contraseña incorrecta');
+      }
+    } catch (error) {
+      console.error('Error al autenticar admin:', error);
+      alert('Ocurrió un error de red al intentar iniciar sesión.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +133,7 @@ export default function Home() {
     const [h, m] = formData.hora_inicio.split(':').map(Number);
     const startMin = h * 60 + m;
     const endMin = startMin + duracionMin;
-    const horaFinCalc = String(Math.floor(endMin / 60) % 24).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
+    const horaFinCalc = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
 
     const colision = events.some((evt) => {
       if (evt.resourceId !== formData.manicurista_nombre) return false;
@@ -212,26 +213,26 @@ export default function Home() {
 
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <FullCalendar
-  plugins={[timeGridPlugin, interactionPlugin]}
-  initialView="timeGridWeek"
-  locale={esLocale}
-  nowIndicator={true}
-  height="auto"
-  headerToolbar={{
-    left: 'prev,next today',
-    center: 'title',
-    right: 'timeGridDay,timeGridWeek'
-  }}
-  buttonText={{
-    today: 'Hoy',
-    timeGridDay: 'Día',
-    timeGridWeek: 'Semana'
-  }}
-  slotMinTime="07:00:00"
-  slotMaxTime="19:00:00"
-  allDaySlot={false}
-  events={events}
-/>
+            plugins={[timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            locale={esLocale}
+            nowIndicator={true}
+            height="auto"
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'timeGridDay,timeGridWeek'
+            }}
+            buttonText={{
+              today: 'Hoy',
+              timeGridDay: 'Día',
+              timeGridWeek: 'Semana'
+            }}
+            slotMinTime="07:00:00"
+            slotMaxTime="19:00:00"
+            allDaySlot={false}
+            events={events}
+          />
         </div>
       </div>
 
@@ -245,6 +246,7 @@ export default function Home() {
                 <input
                   type="password"
                   placeholder="Ingrese su clave"
+                  value={adminPasswordInput}
                   required
                   style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
                   onChange={(e) => setAdminPasswordInput(e.target.value)}
