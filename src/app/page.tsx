@@ -4,16 +4,16 @@ import FullCalendar from '@fullcalendar/react';
 import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import listPlugin from '@fullcalendar/list';
 import esLocale from '@fullcalendar/core/locales/es';
 import { supabase } from '../lib/supabase';
 
-// Helper de colores por manicurista
 const OBTENER_COLOR_MANICURISTA = (manicurista: string) => {
   const nombre = manicurista?.toLowerCase().trim() || '';
-  if (nombre.includes('1')) return { bg: '#22c55e', text: '#ffffff' }; // Verde (Manicurista 1)
-  if (nombre.includes('2')) return { bg: '#3b82f6', text: '#ffffff' }; // Azul (Manicurista 2)
-  if (nombre.includes('3')) return { bg: '#f97316', text: '#ffffff' }; // Naranja (Manicurista 3)
-  return { bg: '#84cc16', text: '#ffffff' }; // Por defecto
+  if (nombre.includes('1')) return { bg: '#22c55e', text: '#ffffff' };
+  if (nombre.includes('2')) return { bg: '#3b82f6', text: '#ffffff' };
+  if (nombre.includes('3')) return { bg: '#f97316', text: '#ffffff' };
+  return { bg: '#84cc16', text: '#ffffff' };
 };
 
 const DURACIONES: Record<string, number> = {
@@ -31,6 +31,7 @@ const RESOURCES = [
 export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [initialView, setInitialView] = useState('resourceTimeGridDay');
   const [formData, setFormData] = useState({
     cliente_nombre: '',
     cliente_telefono: '',
@@ -39,6 +40,20 @@ export default function Home() {
     fecha: new Date().toISOString().split('T')[0],
     hora_inicio: '10:00'
   });
+
+  // Detectar pantalla para ajustar la vista en móviles
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setInitialView('listDay'); // Vista lista para móviles
+      } else {
+        setInitialView('resourceTimeGridDay'); // Vista por columnas para PC/Tablet
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchCitas = async () => {
     const { data, error } = await supabase
@@ -67,16 +82,14 @@ export default function Home() {
         const clienteNom = item.cliente_nombre || 'Cliente';
         const servicioNom = item.servicio_nombre || 'Servicio';
         const manicuristaNom = item.manicurista_nombre || 'Manicurista 1';
-        
-        // Aplicación del color dinámico
         const colores = OBTENER_COLOR_MANICURISTA(manicuristaNom);
 
         return {
           id: String(item.id),
           resourceId: manicuristaNom,
-          title: clienteNom + ' - ' + servicioNom,
-          start: item.fecha + 'T' + hInicio,
-          end: item.fecha + 'T' + hFin,
+          title: `${clienteNom} - ${servicioNom} (${manicuristaNom})`,
+          start: `${item.fecha}T${hInicio}`,
+          end: `${item.fecha}T${hFin}`,
           backgroundColor: colores.bg,
           textColor: colores.text,
           borderColor: 'transparent'
@@ -99,7 +112,6 @@ export default function Home() {
     const endMin = startMin + duracionMin;
     const horaFinCalc = String(Math.floor(endMin / 60) % 24).padStart(2, '0') + ':' + String(endMin % 60).padStart(2, '0');
 
-    // Validación local de choques
     const colision = events.some((evt) => {
       if (evt.resourceId !== formData.manicurista_nombre) return false;
       const evtFecha = evt.start.split('T')[0];
@@ -114,7 +126,7 @@ export default function Home() {
     });
 
     if (colision) {
-      alert('⚠️ La ' + formData.manicurista_nombre + ' ya tiene una cita ocupada en ese rango de horario.');
+      alert(`⚠️ La ${formData.manicurista_nombre} ya tiene una cita ocupada en ese rango de horario.`);
       return;
     }
 
@@ -148,45 +160,54 @@ export default function Home() {
   const duracionTexto = duracionActual === 120 ? '2 Horas' : duracionActual === 100 ? '1 Hora 40 Min' : '3 Horas 40 Min';
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>Control de Citas por Manicurista</h1>
+    <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '1rem' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
+        
+        {/* Encabezado Responsivo */}
+        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Control de Citas Avocado Spa</h1>
           <button
             onClick={() => setModalOpen(true)}
-            style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none' }}
+            style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none', width: 'auto' }}
           >
             + Nueva Cita
           </button>
         </div>
 
-        <FullCalendar
-          plugins={[resourceTimeGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="resourceTimeGridDay"
-          resources={RESOURCES}
-          locale={esLocale}
-          nowIndicator={true}
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'resourceTimeGridDay,timeGridWeek'
-          }}
-          buttonText={{
-            today: 'Hoy',
-            week: 'Semana',
-            day: 'Por Manicurista'
-          }}
-          slotMinTime="07:00:00"
-          slotMaxTime="19:00:00"
-          allDaySlot={false}
-          events={events}
-        />
+        {/* Calendario con plugin de Lista para móviles */}
+        <div style={{ overflowX: 'auto' }}>
+          <FullCalendar
+            plugins={[resourceTimeGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+            initialView={initialView}
+            resources={RESOURCES}
+            locale={esLocale}
+            nowIndicator={true}
+            height="auto"
+            aspectRatio={1.5}
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'resourceTimeGridDay,timeGridWeek,listDay'
+            }}
+            buttonText={{
+              today: 'Hoy',
+              week: 'Semana',
+              day: 'Por Manicurista',
+              listDay: 'Lista Día'
+            }}
+            slotMinTime="07:00:00"
+            slotMaxTime="19:00:00"
+            allDaySlot={false}
+            events={events}
+          />
+        </div>
       </div>
 
+      {/* Modal Adaptable a pantallas pequeñas */}
       {modalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
-          <div style={{ backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: '0.75rem', maxWidth: '400px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', color: '#111827' }}>Agendar Cita</h2>
+          <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#111827' }}>Agendar Cita</h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Nombre de la Clienta</label>
@@ -194,7 +215,7 @@ export default function Home() {
                   type="text"
                   placeholder="Ej: María Pérez"
                   required
-                  style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+                  style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
                   onChange={(e) => setFormData({ ...formData, cliente_nombre: e.target.value })}
                 />
               </div>
@@ -205,16 +226,16 @@ export default function Home() {
                   type="text"
                   placeholder="Ej: 584120000000"
                   required
-                  style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+                  style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
                   onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Manicurista</label>
                   <select
-                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#fff' }}
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#fff', boxSizing: 'border-box' }}
                     value={formData.manicurista_nombre}
                     onChange={(e) => setFormData({ ...formData, manicurista_nombre: e.target.value })}
                   >
@@ -227,7 +248,7 @@ export default function Home() {
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Servicio</label>
                   <select
-                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#fff' }}
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#fff', boxSizing: 'border-box' }}
                     value={formData.servicio_nombre}
                     onChange={(e) => setFormData({ ...formData, servicio_nombre: e.target.value })}
                   >
@@ -238,14 +259,14 @@ export default function Home() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Fecha</label>
                   <input
                     type="date"
                     required
                     value={formData.fecha}
-                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
                     onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
                   />
                 </div>
@@ -255,7 +276,7 @@ export default function Home() {
                     type="time"
                     required
                     value={formData.hora_inicio}
-                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+                    style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
                     onChange={(e) => setFormData({ ...formData, hora_inicio: e.target.value })}
                   />
                 </div>
