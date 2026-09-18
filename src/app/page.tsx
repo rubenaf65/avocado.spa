@@ -4,7 +4,6 @@ import FullCalendar from '@fullcalendar/react';
 import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import listPlugin from '@fullcalendar/list';
 import esLocale from '@fullcalendar/core/locales/es';
 import { supabase } from '../lib/supabase';
 
@@ -31,7 +30,6 @@ const RESOURCES = [
 export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [initialView, setInitialView] = useState('resourceTimeGridDay');
   const [formData, setFormData] = useState({
     cliente_nombre: '',
     cliente_telefono: '',
@@ -40,20 +38,6 @@ export default function Home() {
     fecha: new Date().toISOString().split('T')[0],
     hora_inicio: '10:00'
   });
-
-  // Detectar pantalla para ajustar la vista en móviles
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setInitialView('listDay'); // Vista lista para móviles
-      } else {
-        setInitialView('resourceTimeGridDay'); // Vista por columnas para PC/Tablet
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const fetchCitas = async () => {
     const { data, error } = await supabase
@@ -152,7 +136,7 @@ export default function Home() {
       setModalOpen(false);
       fetchCitas();
     } else {
-      alert('Hubo un problema al guardar la cita en la base de datos.');
+      alert('Hubo un problema al guardar la cita.');
     }
   };
 
@@ -160,40 +144,37 @@ export default function Home() {
   const duracionTexto = duracionActual === 120 ? '2 Horas' : duracionActual === 100 ? '1 Hora 40 Min' : '3 Horas 40 Min';
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '1rem' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '0.75rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
         
-        {/* Encabezado Responsivo */}
         <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Control de Citas Avocado Spa</h1>
           <button
             onClick={() => setModalOpen(true)}
-            style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none', width: 'auto' }}
+            style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none' }}
           >
             + Nueva Cita
           </button>
         </div>
 
-        {/* Calendario con plugin de Lista para móviles */}
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ width: '100%', overflowX: 'auto' }}>
           <FullCalendar
-            plugins={[resourceTimeGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-            initialView={initialView}
+            plugins={[resourceTimeGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="resourceTimeGridDay"
             resources={RESOURCES}
             locale={esLocale}
             nowIndicator={true}
             height="auto"
-            aspectRatio={1.5}
+            contentHeight="auto"
             headerToolbar={{
               left: 'prev,next today',
               center: 'title',
-              right: 'resourceTimeGridDay,timeGridWeek,listDay'
+              right: 'resourceTimeGridDay,timeGridWeek,timeGridDay'
             }}
             buttonText={{
               today: 'Hoy',
               week: 'Semana',
-              day: 'Por Manicurista',
-              listDay: 'Lista Día'
+              day: 'Día'
             }}
             slotMinTime="07:00:00"
             slotMaxTime="19:00:00"
@@ -203,7 +184,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Modal Adaptable a pantallas pequeñas */}
       {modalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
