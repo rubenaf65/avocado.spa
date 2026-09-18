@@ -5,7 +5,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const inputPassword = body?.password ? String(body.password).trim() : '';
 
-    // Obtiene la clave configurada en las variables de entorno (.env.local o Vercel)
+    // Lee la clave de las variables de entorno o usa 'admin123' por defecto
     const envPassword = process.env.ADMIN_PASSWORD || process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123';
     const targetPassword = String(envPassword).trim();
 

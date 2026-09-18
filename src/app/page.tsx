@@ -93,27 +93,37 @@ export default function Home() {
     fetchCitas();
   }, []);
 
-  const handleAdminAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPasswordInput })
-      });
+  const handleAdminLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setIsAdmin(true);
-        setAdminModalOpen(false);
-        alert('¡Autenticado como administrador!');
-      } else {
-        alert(data.message || 'Contraseña incorrecta');
-      }
-    } catch {
-      alert('Error de conexión al autenticar');
+  const cleanPassword = inputPassword ? inputPassword.trim() : '';
+
+  if (!cleanPassword) {
+    alert('Por favor, ingresa la contraseña de administrador.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: cleanPassword }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      setIsAdmin(true);
+      setShowModal(false);
+      setInputPassword('');
+    } else {
+      alert(data.message || 'Contraseña incorrecta');
     }
-  };
+  } catch (error) {
+    console.error('Error al autenticar admin:', error);
+    alert('Ocurrió un error de red al intentar iniciar sesión.');
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
