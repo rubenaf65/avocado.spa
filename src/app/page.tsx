@@ -30,6 +30,10 @@ const RESOURCES = [
 export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const [formData, setFormData] = useState({
     cliente_nombre: '',
     cliente_telefono: '',
@@ -86,6 +90,28 @@ export default function Home() {
   useEffect(() => {
     fetchCitas();
   }, []);
+
+  const handleAdminAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPasswordInput })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsAdmin(true);
+        setAdminModalOpen(false);
+        alert('¡Autenticado como administrador!');
+      } else {
+        alert(data.message || 'Contraseña incorrecta');
+      }
+    } catch {
+      alert('Error de conexión al autenticar');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,11 +173,20 @@ export default function Home() {
     <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '0.75rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
         
-        {/* Leyenda de Colores */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', fontSize: '0.85rem', fontWeight: 600 }}>
-          <span style={{ color: '#22c55e' }}>● Manicurista 1</span>
-          <span style={{ color: '#3b82f6' }}>● Manicurista 2</span>
-          <span style={{ color: '#f97316' }}>● Manicurista 3</span>
+        {/* Leyenda y Control de Sesión Admin */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>
+            <span style={{ color: '#22c55e' }}>● Manicurista 1</span>
+            <span style={{ color: '#3b82f6' }}>● Manicurista 2</span>
+            <span style={{ color: '#f97316' }}>● Manicurista 3</span>
+          </div>
+
+          <button
+            onClick={() => setAdminModalOpen(true)}
+            style={{ backgroundColor: isAdmin ? '#1e293b' : '#475569', color: '#ffffff', padding: '0.4rem 0.8rem', borderRadius: '0.375rem', border: 'none', fontSize: '0.85rem', cursor: 'pointer' }}
+          >
+            {isAdmin ? '🔓 Modos Admin' : '🔒 Admin'}
+          </button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -190,6 +225,43 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Modal de Ingreso Admin */}
+      {adminModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '350px', width: '100%' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#111827' }}>Acceso Administrativo</h2>
+            <form onSubmit={handleAdminAuth} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Contraseña de Administrador</label>
+                <input
+                  type="password"
+                  placeholder="Ingrese su clave"
+                  required
+                  style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setAdminModalOpen(false)}
+                  style={{ padding: '0.5rem 0.75rem', backgroundColor: '#e5e7eb', color: '#374151', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '0.5rem 0.75rem', backgroundColor: '#1e293b', color: '#ffffff', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  Ingresar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Agendar Cita */}
       {modalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
