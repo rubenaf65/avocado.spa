@@ -47,7 +47,7 @@ export default function Home() {
     manicurista_nombre: '',
     servicio_nombre: '',
     fecha: '',
-    hora_inicio: '10:00'
+    hora_inicio: '09:00'
   });
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function Home() {
       ];
     }
     setEspecialistas(currentEspecialistas);
-    setFormData((prev) => ({ ...prev, manicurista_nombre: prev.manicurista_nombre || currentEspecialistas[0].nombre }));
+    setFormData((prev) => ({ ...prev, manicurista_nombre: prev.manicurista_nombre || currentEspecialistas[0]?.nombre || '' }));
 
     // 2. Servicios
     let currentServicios: any[] = [];
@@ -84,7 +84,7 @@ export default function Home() {
       ];
     }
     setServicios(currentServicios);
-    setFormData((prev) => ({ ...prev, servicio_nombre: prev.servicio_nombre || currentServicios[0].nombre }));
+    setFormData((prev) => ({ ...prev, servicio_nombre: prev.servicio_nombre || currentServicios[0]?.nombre || '' }));
 
     // 3. Citas
     const { data: citasData, error } = await supabase
@@ -175,12 +175,42 @@ export default function Home() {
     }
   };
 
+  // Validar restricciones de horario y días (Martes a Sábado, 9:00 AM a 5:00 PM)
+  const validarHorarioYDia = (fechaStr: string, horaInicioStr: string, duracionMinutos: number) => {
+    const [year, month, day] = fechaStr.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    const dayOfWeek = dateObj.getDay(); // 0: Domingo, 1: Lunes, 2: Martes, ..., 6: Sábado
+
+    if (dayOfWeek === 0 || dayOfWeek === 1) {
+      alert('⚠️ Solo se pueden agendar citas de Martes a Sábado.');
+      return false;
+    }
+
+    const [h, m] = horaInicioStr.split(':').map(Number);
+    const startMin = h * 60 + m;
+    const endMin = startMin + duracionMinutos;
+
+    const limiteInicioMin = 9 * 60;  // 09:00 AM
+    const limiteFinMin = 17 * 60;   // 05:00 PM (17:00)
+
+    if (startMin < limiteInicioMin || endMin > limiteFinMin) {
+      alert('⚠️ El horario permitido de atención es de 9:00 AM a 5:00 PM. Por favor selecciona un horario adecuado.');
+      return false;
+    }
+
+    return true;
+  };
+
   // Crear cita público
   const handleSubmitCita = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const servObj = servicios.find((s) => s.nombre === formData.servicio_nombre);
     const duracionMin = servObj ? servObj.duracion_minutos : 120;
+
+    if (!validarHorarioYDia(formData.fecha, formData.hora_inicio, duracionMin)) {
+      return;
+    }
 
     const [h, m] = formData.hora_inicio.split(':').map(Number);
     const startMin = h * 60 + m;
@@ -268,6 +298,10 @@ export default function Home() {
 
     const servObj = servicios.find((s) => s.nombre === editingCita.servicio_nombre);
     const duracionMin = servObj ? servObj.duracion_minutos : editingCita.duracion_minutos || 120;
+
+    if (!validarHorarioYDia(editingCita.fecha, editingCita.hora_inicio, duracionMin)) {
+      return;
+    }
 
     const [h, m] = editingCita.hora_inicio.split(':').map(Number);
     const startMin = h * 60 + m;
@@ -360,7 +394,6 @@ export default function Home() {
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '1rem' }}>
-      {/* Estilos CSS personalizados para la burbuja de hora y la franja roja */}
       <style jsx global>{`
         .fc .fc-timegrid-axis,
         .fc .fc-timegrid-slot-label {
@@ -402,7 +435,6 @@ export default function Home() {
         
         {/* Encabezado e Indicadores de Especialistas */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-          
           <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {especialistas.map((esp, idx) => {
               const col = COLORES_PREDEFINIDOS[idx % COLORES_PREDEFINIDOS.length];
@@ -427,7 +459,7 @@ export default function Home() {
                     {inicial}
                   </div>
                   <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#334155', letterSpacing: '0.05em' }}>
-                    {esp.nombre.toUpperCase()}
+                    {esp.nombre ? esp.nombre.toUpperCase() : ''}
                   </span>
                 </div>
               );
@@ -443,7 +475,10 @@ export default function Home() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Agenda Avocado Spa</h1>
+          <div>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Agenda Avocado Spa</h1>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Horario de atención: Martes a Sábado, 9:00 AM - 5:00 PM</p>
+          </div>
           <button
             onClick={() => setModalOpen(true)}
             style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', border: 'none' }}
@@ -452,13 +487,14 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Calendario */}
+        {/* Calendario ajustado al rango de atención */}
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <FullCalendar
             plugins={[timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
             locale={esLocale}
             timeZone="local"
+            hiddenDays={[0, 1]} // Oculta Domingo (0) y Lunes (1)
             nowIndicator={true}
             now={new Date().toISOString()}
             nowIndicatorContent={(args) => {
@@ -483,8 +519,8 @@ export default function Home() {
               timeGridDay: 'Día',
               timeGridWeek: 'Semana'
             }}
-            slotMinTime="07:00:00"
-            slotMaxTime="19:00:00"
+            slotMinTime="09:00:00"
+            slotMaxTime="17:00:00"
             allDaySlot={false}
             events={events}
           />
@@ -495,7 +531,9 @@ export default function Home() {
       {modalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#111827' }}>Agendar Nueva Cita</h2>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.25rem', color: '#111827' }}>Agendar Nueva Cita</h2>
+            <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem' }}>Horario: Martes a Sábado (9:00 AM - 5:00 PM)</p>
+            
             <form onSubmit={handleSubmitCita} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Nombre Completo</label>
@@ -557,6 +595,8 @@ export default function Home() {
                   <input
                     type="time"
                     required
+                    min="09:00"
+                    max="17:00"
                     value={formData.hora_inicio}
                     onChange={(e) => setFormData({ ...formData, hora_inicio: e.target.value })}
                     style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
@@ -706,6 +746,8 @@ export default function Home() {
                           <input
                             type="time"
                             value={editingCita.hora_inicio}
+                            min="09:00"
+                            max="17:00"
                             onChange={(e) => setEditingCita({ ...editingCita, hora_inicio: e.target.value })}
                             style={{ padding: '0.4rem', border: '1px solid #ccc', borderRadius: '0.25rem' }}
                             required
