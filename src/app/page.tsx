@@ -203,14 +203,18 @@ export default function Home() {
     return true;
   };
 
-  // Función para abrir la notificación por WhatsApp
+  // Función para abrir la notificación por WhatsApp garantizando apertura
   const notificarPorWhatsApp = (datosNuevaCita: any) => {
     const urlCliente = generarLinkWhatsApp(
       datosNuevaCita.cliente_telefono,
       msgConfirmacionCliente(datosNuevaCita)
     );
 
-    window.open(urlCliente, '_blank');
+    // Intentar abrir en nueva pestaña; si el navegador bloquea la ventana emergente, redirige en la pestaña actual
+    const win = window.open(urlCliente, '_blank');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+      window.location.href = urlCliente;
+    }
   };
 
   // Crear cita público
