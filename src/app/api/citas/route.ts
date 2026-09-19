@@ -67,3 +67,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase'; // Asegura la ruta a src/lib/supabase[cite: 4]
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const {
+      cliente_nombre,
+      cliente_telefono,
+      manicurista_nombre,
+      servicio_nombre,
+      fecha,
+      hora_inicio,
+      hora_fin,
+      duracion_minutos
+    } = body;
+
+    // Inserción directa en la tabla citas
+    const { data, error } = await supabase
+      .from('citas')
+      .insert([
+        {
+          cliente_nombre,
+          cliente_telefono,
+          manicurista_nombre,
+          servicio_nombre,
+          fecha,
+          hora_inicio,
+          hora_fin,
+          duracion_minutos,
+          estado: 'confirmada'
+        }
+      ])
+      .select();
+
+    if (error) {
+      console.error('Error insertando en Supabase:', error);
+      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, data });
+  } catch (err: any) {
+    console.error('Error interno del servidor:', err);
+    return NextResponse.json({ success: false, message: 'Error interno en el servidor' }, { status: 500 });
+  }
+}

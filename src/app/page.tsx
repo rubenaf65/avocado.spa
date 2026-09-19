@@ -9,58 +9,99 @@ import { supabase } from '../lib/supabase';
 
 const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
 
-const OBTENER_COLOR_MANICURISTA = (manicurista: string) => {
-  const nombre = manicurista?.toLowerCase().trim() || '';
-  if (nombre.includes('1')) return { bg: '#22c55e', text: '#ffffff' };
-  if (nombre.includes('2')) return { bg: '#3b82f6', text: '#ffffff' };
-  if (nombre.includes('3')) return { bg: '#f97316', text: '#ffffff' };
-  return { bg: '#84cc16', text: '#ffffff' };
-};
-
-const DURACIONES: Record<string, number> = {
-  'Manicure': 120,
-  'Pedicure': 100,
-  'Manicure + Pedicure': 220
-};
+const COLORES_PREDEFINIDOS = [
+  { bg: '#22c55e', text: '#ffffff' },
+  { bg: '#3b82f6', text: '#ffffff' },
+  { bg: '#f97316', text: '#ffffff' },
+  { bg: '#84cc16', text: '#ffffff' },
+  { bg: '#a855f7', text: '#ffffff' },
+  { bg: '#ec4899', text: '#ffffff' },
+];
 
 export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
+  const [citasList, setCitasList] = useState<any[]>([]);
+  const [especialistas, setEspecialistas] = useState<any[]>([]);
+  const [servicios, setServicios] = useState<any[]>([]);
+
+  // Modales y estados
   const [modalOpen, setModalOpen] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminTab, setAdminTab] = useState<'citas' | 'especialistas' | 'servicios'>('citas');
 
+  // Formularios rápidos de Admin
+  const [nuevoEspNombre, setNuevoEspNombre] = useState('');
+  const [nuevoServNombre, setNuevoServNombre] = useState('');
+  const [nuevoServDuracion, setNuevoServDuracion] = useState(120);
+
+  // Estado para editar/mover cita desde Admin
+  const [editingCita, setEditingCita] = useState<any | null>(null);
+
+  // Formulario cliente público
   const [formData, setFormData] = useState({
     cliente_nombre: '',
     cliente_telefono: '',
-    manicurista_nombre: 'Manicurista 1',
-    servicio_nombre: 'Manicure',
+    manicurista_nombre: '',
+    servicio_nombre: '',
     fecha: '',
     hora_inicio: '10:00'
   });
 
   useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      fecha: new Date().toISOString().split('T')[0]
-    }));
+    const hoy = new Date().toISOString().split('T')[0];
+    setFormData((prev) => ({ ...prev, fecha: hoy }));
   }, []);
 
-  const fetchCitas = async () => {
-    const { data, error } = await supabase
+  // Carga de datos principales
+  const fetchData = async () => {
+    // 1. Obtener Especialistas
+    const { data: espData } = await supabase.from('especialistas').select('*').order('id', { ascending: true });
+    if (espData && espData.length > 0) {
+      setEspecialistas(espData);
+      setFormData((prev) => ({ ...prev, manicurista_nombre: prev.manicurista_nombre || espData[0].nombre }));
+    } else {
+      // Fallback por defecto si no existe tabla o está vacía
+      const defaultEsp = [{ id: 1, nombre: 'Manicurista 1' }, { id: 2, nombre: 'Manicurista 2' }, { id: 3, nombre: 'Manicurista 3' }];
+      setEspecialistas(defaultEsp);
+      setFormData((prev) => ({ ...prev, manicurista_nombre: prev.manicurista_nombre || defaultEsp[0].nombre }));
+    }
+
+    // 2. Obtener Servicios
+    const { data: servData } = await supabase.from('servicios').select('*').order('id', { ascending: true });
+    if (servData && servData.length > 0) {
+      setServicios(servData);
+      setFormData((prev) => ({ ...prev, servicio_nombre: prev.servicio_nombre || servData[0].nombre }));
+    } else {
+      const defaultServ = [
+        { id: 1, nombre: 'Manicure', duracion_minutos: 120 },
+        { id: 2, nombre: 'Pedicure', duracion_minutos: 100 },
+        { id: 3, nombre: 'Manicure + Pedicure', duracion_minutos: 220 }
+      ];
+      setServicios(defaultServ);
+      setFormData((prev) => ({ ...prev, servicio_nombre: prev.servicio_nombre || defaultServ[0].nombre }));
+    }
+
+    // 3. Obtener Citas
+    const { data: citasData, error } = await supabase
       .from('citas')
       .select('*')
-      .neq('estado', 'cancelada');
+      .neq('estado', 'cancelada')
+      .order('fecha', { ascending: true });
 
-    if (!error && data) {
-      const formattedEvents = data.map((item: any) => {
+    if (!error && citasData) {
+      setCitasList(citasData);
+
+      const formattedEvents = citasData.map((item: any) => {
         let hInicio = item.hora_inicio || '09:00';
         let hFin = item.hora_fin;
 
         if (hInicio.length === 5) hInicio += ':00';
 
         if (!hFin) {
-          const duracionMin = DURACIONES[item.servicio_nombre] || 120;
+          const serv = servicios.find(s => s.nombre === item.servicio_nombre);
+          const duracionMin = serv ? serv.duracion_minutos : (item.duracion_minutos || 120);
           const [h, m] = hInicio.split(':').map(Number);
           const totalMin = h * 60 + m + duracionMin;
           const endH = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
@@ -72,8 +113,11 @@ export default function Home() {
 
         const clienteNom = item.cliente_nombre || 'Cliente';
         const servicioNom = item.servicio_nombre || 'Servicio';
-        const manicuristaNom = item.manicurista_nombre || 'Manicurista 1';
-        const colores = OBTENER_COLOR_MANICURISTA(manicuristaNom);
+        const manicuristaNom = item.manicurista_nombre || 'Especialista';
+
+        // Asignación de color según especialista
+        const espIndex = especialistas.findIndex(e => e.nombre === manicuristaNom);
+        const colores = COLORES_PREDEFINIDOS[espIndex % COLORES_PREDEFINIDOS.length] || COLORES_PREDEFINIDOS[0];
 
         return {
           id: String(item.id),
@@ -86,17 +130,18 @@ export default function Home() {
           borderColor: 'transparent'
         };
       });
+
       setEvents(formattedEvents);
     }
   };
 
   useEffect(() => {
-    fetchCitas();
+    fetchData();
   }, []);
 
+  // Login Admin
   const handleAdminAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const cleanPassword = adminPasswordInput ? adminPasswordInput.trim() : '';
 
     if (!cleanPassword) {
@@ -115,7 +160,6 @@ export default function Home() {
 
       if (res.ok && data.success) {
         setIsAdmin(true);
-        setAdminModalOpen(false);
         setAdminPasswordInput('');
       } else {
         alert(data.message || 'Contraseña incorrecta');
@@ -126,15 +170,19 @@ export default function Home() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Crear cita público
+  const handleSubmitCita = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const duracionMin = DURACIONES[formData.servicio_nombre] || 120;
+    const servObj = servicios.find(s => s.nombre === formData.servicio_nombre);
+    const duracionMin = servObj ? servObj.duracion_minutos : 120;
+
     const [h, m] = formData.hora_inicio.split(':').map(Number);
     const startMin = h * 60 + m;
     const endMin = startMin + duracionMin;
     const horaFinCalc = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
 
+    // Validar conflicto de horario
     const colision = events.some((evt) => {
       if (evt.resourceId !== formData.manicurista_nombre) return false;
       const evtFecha = evt.start.split('T')[0];
@@ -149,7 +197,7 @@ export default function Home() {
     });
 
     if (colision) {
-      alert(`⚠️ La ${formData.manicurista_nombre} ya tiene una cita ocupada en ese rango de horario.`);
+      alert(`⚠️ La especialista ${formData.manicurista_nombre} ya tiene una cita agendada en ese rango de horario.`);
       return;
     }
 
@@ -161,43 +209,176 @@ export default function Home() {
       fecha: formData.fecha,
       hora_inicio: formData.hora_inicio,
       hora_fin: horaFinCalc,
-      duracion_minutos: duracionMin
+      duracion_minutos: duracionMin,
+      estado: 'confirmada'
     };
 
-    const res = await fetch('/api/citas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    try {
+      const res = await fetch('/api/citas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    if (res.ok) {
-      alert('¡Cita agendada correctamente!');
-      setModalOpen(false);
-      fetchCitas();
-    } else {
-      alert('Hubo un problema al guardar la cita.');
+      const result = await res.json();
+
+      if (res.ok) {
+        alert('¡Cita agendada correctamente!');
+        setModalOpen(false);
+        fetchData();
+      } else {
+        alert(`Error al guardar cita: ${result.message || 'Ocurrió un error en el servidor.'}`);
+      }
+    } catch (err) {
+      console.error('Error al guardar cita:', err);
+      alert('Error de conexión al intentar guardar la cita.');
     }
   };
 
-  const duracionActual = DURACIONES[formData.servicio_nombre] || 120;
-  const duracionTexto = duracionActual === 120 ? '2 Horas' : duracionActual === 100 ? '1 Hora 40 Min' : '3 Horas 40 Min';
+  // --- ACCIONES RÁPIDAS ADMINISTRATIVAS --- //
+
+  // Liberar / Cancelar cita
+  const handleLiberarCita = async (id: number) => {
+    if (!confirm('¿Deseas liberar/cancelar este espacio de cita?')) return;
+    const { error } = await supabase.from('citas').update({ estado: 'cancelada' }).eq('id', id);
+    if (!error) {
+      alert('Cita liberada con éxito.');
+      fetchData();
+    } else {
+      alert('Error al liberar la cita: ' + error.message);
+    }
+  };
+
+  // Eliminar cita permanentemente
+  const handleEliminarCita = async (id: number) => {
+    if (!confirm('¿Estás seguro de eliminar permanentemente esta cita?')) return;
+    const { error } = await supabase.from('citas').delete().eq('id', id);
+    if (!error) {
+      alert('Cita eliminada correctamente.');
+      fetchData();
+    } else {
+      alert('Error al eliminar la cita: ' + error.message);
+    }
+  };
+
+  // Actualizar / Modificar cita existente
+  const handleGuardarModificacionCita = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCita) return;
+
+    const servObj = servicios.find(s => s.nombre === editingCita.servicio_nombre);
+    const duracionMin = servObj ? servObj.duracion_minutos : editingCita.duracion_minutos || 120;
+
+    const [h, m] = editingCita.hora_inicio.split(':').map(Number);
+    const startMin = h * 60 + m;
+    const endMin = startMin + duracionMin;
+    const horaFinCalc = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+
+    const { error } = await supabase
+      .from('citas')
+      .update({
+        cliente_nombre: editingCita.cliente_nombre,
+        cliente_telefono: editingCita.cliente_telefono,
+        manicurista_nombre: editingCita.manicurista_nombre,
+        servicio_nombre: editingCita.servicio_nombre,
+        fecha: editingCita.fecha,
+        hora_inicio: editingCita.hora_inicio,
+        hora_fin: horaFinCalc,
+        duracion_minutos: duracionMin
+      })
+      .eq('id', editingCita.id);
+
+    if (!error) {
+      alert('Cita modificada con éxito.');
+      setEditingCita(null);
+      fetchData();
+    } else {
+      alert('Error al modificar cita: ' + error.message);
+    }
+  };
+
+  // Agregar Especialista
+  const handleAgregarEspecialista = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nuevoEspNombre.trim()) return;
+
+    const { error } = await supabase.from('especialistas').insert([{ nombre: nuevoEspNombre.trim() }]);
+    if (!error) {
+      alert('Especialista agregado(a) con éxito.');
+      setNuevoEspNombre('');
+      fetchData();
+    } else {
+      alert('Error al agregar especialista: ' + error.message);
+    }
+  };
+
+  // Eliminar Especialista
+  const handleEliminarEspecialista = async (id: number) => {
+    if (!confirm('¿Seguro que deseas eliminar este especialista?')) return;
+    const { error } = await supabase.from('especialistas').delete().eq('id', id);
+    if (!error) {
+      alert('Especialista eliminado.');
+      fetchData();
+    } else {
+      alert('Error al eliminar especialista: ' + error.message);
+    }
+  };
+
+  // Agregar Servicio
+  const handleAgregarServicio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nuevoServNombre.trim()) return;
+
+    const { error } = await supabase
+      .from('servicios')
+      .insert([{ nombre: nuevoServNombre.trim(), duracion_minutos: Number(nuevoServDuracion) }]);
+
+    if (!error) {
+      alert('Servicio agregado con éxito.');
+      setNuevoServNombre('');
+      setNuevoServDuracion(120);
+      fetchData();
+    } else {
+      alert('Error al agregar servicio: ' + error.message);
+    }
+  };
+
+  // Eliminar Servicio
+  const handleEliminarServicio = async (id: number) => {
+    if (!confirm('¿Seguro que deseas eliminar este servicio?')) return;
+    const { error } = await supabase.from('servicios').delete().eq('id', id);
+    if (!error) {
+      alert('Servicio eliminado.');
+      fetchData();
+    } else {
+      alert('Error al eliminar servicio: ' + error.message);
+    }
+  };
+
+  const duracionFormActual = servicios.find(s => s.nombre === formData.servicio_nombre)?.duracion_minutos || 120;
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '0.75rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
         
+        {/* Leyenda de Especialistas */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>
-            <span style={{ color: '#22c55e' }}>● Manicurista 1</span>
-            <span style={{ color: '#3b82f6' }}>● Manicurista 2</span>
-            <span style={{ color: '#f97316' }}>● Manicurista 3</span>
+          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', fontWeight: 600, flexWrap: 'wrap' }}>
+            {especialistas.map((esp, idx) => {
+              const col = COLORES_PREDEFINIDOS[idx % COLORES_PREDEFINIDOS.length];
+              return (
+                <span key={esp.id || idx} style={{ color: col.bg }}>
+                  ● {esp.nombre}
+                </span>
+              );
+            })}
           </div>
 
           <button
             onClick={() => setAdminModalOpen(true)}
             style={{ backgroundColor: isAdmin ? '#1e293b' : '#475569', color: '#ffffff', padding: '0.4rem 0.8rem', borderRadius: '0.375rem', border: 'none', fontSize: '0.85rem', cursor: 'pointer' }}
           >
-            {isAdmin ? '🔓 Modo Admin' : '🔒 Admin'}
+            {isAdmin ? '🔓 Panel Admin' : '🔒 Admin'}
           </button>
         </div>
 
@@ -211,12 +392,15 @@ export default function Home() {
           </button>
         </div>
 
+        {/* Calendario */}
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <FullCalendar
             plugins={[timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
             locale={esLocale}
+            timeZone="local"
             nowIndicator={true}
+            now={new Date().toISOString()}
             height="auto"
             headerToolbar={{
               left: 'prev,next today',
@@ -236,47 +420,315 @@ export default function Home() {
         </div>
       </div>
 
+      {/* MODAL ADMIN */}
       {adminModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
-          <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '350px', width: '100%' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#111827' }}>Acceso Administrativo</h2>
-            <form onSubmit={handleAdminAuth} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '850px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            
+            {!isAdmin ? (
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Contraseña de Administrador</label>
-                <input
-                  type="password"
-                  placeholder="Ingrese su clave"
-                  value={adminPasswordInput}
-                  required
-                  style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  onChange={(e) => setAdminPasswordInput(e.target.value)}
-                />
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#111827' }}>Acceso Administrativo</h2>
+                <form onSubmit={handleAdminAuth} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Contraseña</label>
+                    <input
+                      type="password"
+                      placeholder="Ingrese la clave"
+                      value={adminPasswordInput}
+                      required
+                      style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                      onChange={(e) => setAdminPasswordInput(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setAdminModalOpen(false)}
+                      style={{ padding: '0.5rem 0.75rem', backgroundColor: '#e5e7eb', color: '#374151', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      style={{ padding: '0.5rem 0.75rem', backgroundColor: '#1e293b', color: '#ffffff', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                      Ingresar
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setAdminModalOpen(false)}
-                  style={{ padding: '0.5rem 0.75rem', backgroundColor: '#e5e7eb', color: '#374151', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{ padding: '0.5rem 0.75rem', backgroundColor: '#1e293b', color: '#ffffff', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                >
-                  Ingresar
-                </button>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Panel Administrativo - Acciones Rápidas</h2>
+                  <button
+                    onClick={() => setAdminModalOpen(false)}
+                    style={{ padding: '0.3rem 0.6rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+
+                {/* Tabs de navegación */}
+                <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid #e5e7eb', marginBottom: '1rem' }}>
+                  <button
+                    onClick={() => setAdminTab('citas')}
+                    style={{ padding: '0.5rem 1rem', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', borderBottom: adminTab === 'citas' ? '3px solid #65a30d' : 'transparent', color: adminTab === 'citas' ? '#65a30d' : '#4b5563' }}
+                  >
+                    📅 Citas ({citasList.length})
+                  </button>
+                  <button
+                    onClick={() => setAdminTab('especialistas')}
+                    style={{ padding: '0.5rem 1rem', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', borderBottom: adminTab === 'especialistas' ? '3px solid #65a30d' : 'transparent', color: adminTab === 'especialistas' ? '#65a30d' : '#4b5563' }}
+                  >
+                    💅 Especialistas ({especialistas.length})
+                  </button>
+                  <button
+                    onClick={() => setAdminTab('servicios')}
+                    style={{ padding: '0.5rem 1rem', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', borderBottom: adminTab === 'servicios' ? '3px solid #65a30d' : 'transparent', color: adminTab === 'servicios' ? '#65a30d' : '#4b5563' }}
+                  >
+                    ✨ Servicios ({servicios.length})
+                  </button>
+                </div>
+
+                {/* CONTENIDO TAB 1: CITAS */}
+                {adminTab === 'citas' && (
+                  <div>
+                    {editingCita && (
+                      <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#166534', fontSize: '0.9rem' }}>Modificar Cita ID #{editingCita.id}</h4>
+                        <form onSubmit={handleGuardarModificacionCita} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem' }}>
+                          <input
+                            type="text"
+                            placeholder="Cliente"
+                            value={editingCita.cliente_nombre}
+                            onChange={(e) => setEditingCita({ ...editingCita, cliente_nombre: e.target.value })}
+                            style={{ padding: '0.4rem', border: '1px solid #ccc', borderRadius: '0.25rem' }}
+                            required
+                          />
+                          <input
+                            type="text"
+                            placeholder="Teléfono"
+                            value={editingCita.cliente_telefono}
+                            onChange={(e) => setEditingCita({ ...editingCita, cliente_telefono: e.target.value })}
+                            style={{ padding: '0.4rem', border: '1px solid #ccc', borderRadius: '0.25rem' }}
+                            required
+                          />
+                          <select
+                            value={editingCita.manicurista_nombre}
+                            onChange={(e) => setEditingCita({ ...editingCita, manicurista_nombre: e.target.value })}
+                            style={{ padding: '0.4rem', border: '1px solid #ccc', borderRadius: '0.25rem', backgroundColor: '#fff' }}
+                          >
+                            {especialistas.map((esp) => (
+                              <option key={esp.id} value={esp.nombre}>{esp.nombre}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={editingCita.servicio_nombre}
+                            onChange={(e) => setEditingCita({ ...editingCita, servicio_nombre: e.target.value })}
+                            style={{ padding: '0.4rem', border: '1px solid #ccc', borderRadius: '0.25rem', backgroundColor: '#fff' }}
+                          >
+                            {servicios.map((s) => (
+                              <option key={s.id} value={s.nombre}>{s.nombre}</option>
+                            ))}
+                          </select>
+                          <input
+                            type="date"
+                            value={editingCita.fecha}
+                            onChange={(e) => setEditingCita({ ...editingCita, fecha: e.target.value })}
+                            style={{ padding: '0.4rem', border: '1px solid #ccc', borderRadius: '0.25rem' }}
+                            required
+                          />
+                          <input
+                            type="time"
+                            value={editingCita.hora_inicio}
+                            onChange={(e) => setEditingCita({ ...editingCita, hora_inicio: e.target.value })}
+                            style={{ padding: '0.4rem', border: '1px solid #ccc', borderRadius: '0.25rem' }}
+                            required
+                          />
+                          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                            <button type="button" onClick={() => setEditingCita(null)} style={{ padding: '0.3rem 0.6rem', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}>Cancelar</button>
+                            <button type="submit" style={{ padding: '0.3rem 0.6rem', backgroundColor: '#22c55e', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}>Guardar Cambios</button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
+                            <th style={{ padding: '0.5rem' }}>Fecha</th>
+                            <th style={{ padding: '0.5rem' }}>Hora</th>
+                            <th style={{ padding: '0.5rem' }}>Cliente</th>
+                            <th style={{ padding: '0.5rem' }}>Especialista</th>
+                            <th style={{ padding: '0.5rem' }}>Servicio</th>
+                            <th style={{ padding: '0.5rem' }}>Acciones Rápidas</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {citasList.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>No hay citas registradas.</td>
+                            </tr>
+                          ) : (
+                            citasList.map((cita) => (
+                              <tr key={cita.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                <td style={{ padding: '0.5rem' }}>{cita.fecha}</td>
+                                <td style={{ padding: '0.5rem' }}>{cita.hora_inicio} - {cita.hora_fin}</td>
+                                <td style={{ padding: '0.5rem' }}><strong>{cita.cliente_nombre}</strong><br/><span style={{ color: '#6b7280' }}>{cita.cliente_telefono}</span></td>
+                                <td style={{ padding: '0.5rem' }}>{cita.manicurista_nombre}</td>
+                                <td style={{ padding: '0.5rem' }}>{cita.servicio_nombre}</td>
+                                <td style={{ padding: '0.5rem' }}>
+                                  <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                                    <button
+                                      onClick={() => setEditingCita(cita)}
+                                      style={{ padding: '0.25rem 0.5rem', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}
+                                    >
+                                      ✏️ Cambiar
+                                    </button>
+                                    <button
+                                      onClick={() => handleLiberarCita(cita.id)}
+                                      style={{ padding: '0.25rem 0.5rem', backgroundColor: '#f97316', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}
+                                    >
+                                      🔓 Liberar
+                                    </button>
+                                    <button
+                                      onClick={() => handleEliminarCita(cita.id)}
+                                      style={{ padding: '0.25rem 0.5rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}
+                                    >
+                                      🗑️ Eliminar
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* CONTENIDO TAB 2: ESPECIALISTAS */}
+                {adminTab === 'especialistas' && (
+                  <div>
+                    <form onSubmit={handleAgregarEspecialista} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <input
+                        type="text"
+                        placeholder="Nombre de nueva especialista"
+                        value={nuevoEspNombre}
+                        onChange={(e) => setNuevoEspNombre(e.target.value)}
+                        style={{ flex: 1, padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.85rem' }}
+                        required
+                      />
+                      <button
+                        type="submit"
+                        style={{ padding: '0.5rem 1rem', backgroundColor: '#65a30d', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                      >
+                        + Agregar Especialista
+                      </button>
+                    </form>
+
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
+                          <th style={{ padding: '0.5rem' }}>ID</th>
+                          <th style={{ padding: '0.5rem' }}>Nombre</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'right' }}>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {especialistas.map((esp) => (
+                          <tr key={esp.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                            <td style={{ padding: '0.5rem' }}>#{esp.id}</td>
+                            <td style={{ padding: '0.5rem', fontWeight: 600 }}>{esp.nombre}</td>
+                            <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                              <button
+                                onClick={() => handleEliminarEspecialista(esp.id)}
+                                style={{ padding: '0.25rem 0.5rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}
+                              >
+                                🗑️ Eliminar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* CONTENIDO TAB 3: SERVICIOS */}
+                {adminTab === 'servicios' && (
+                  <div>
+                    <form onSubmit={handleAgregarServicio} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <input
+                        type="text"
+                        placeholder="Nombre del servicio"
+                        value={nuevoServNombre}
+                        onChange={(e) => setNuevoServNombre(e.target.value)}
+                        style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.85rem' }}
+                        required
+                      />
+                      <input
+                        type="number"
+                        placeholder="Duración (min)"
+                        value={nuevoServDuracion}
+                        onChange={(e) => setNuevoServDuracion(Number(e.target.value))}
+                        style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.85rem' }}
+                        required
+                      />
+                      <button
+                        type="submit"
+                        style={{ padding: '0.5rem 1rem', backgroundColor: '#65a30d', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                      >
+                        + Agregar Servicio
+                      </button>
+                    </form>
+
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
+                          <th style={{ padding: '0.5rem' }}>ID</th>
+                          <th style={{ padding: '0.5rem' }}>Servicio</th>
+                          <th style={{ padding: '0.5rem' }}>Duración</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'right' }}>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {servicios.map((serv) => (
+                          <tr key={serv.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                            <td style={{ padding: '0.5rem' }}>#{serv.id}</td>
+                            <td style={{ padding: '0.5rem', fontWeight: 600 }}>{serv.nombre}</td>
+                            <td style={{ padding: '0.5rem' }}>{serv.duracion_minutos} minutos</td>
+                            <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                              <button
+                                onClick={() => handleEliminarServicio(serv.id)}
+                                style={{ padding: '0.25rem 0.5rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}
+                              >
+                                🗑️ Eliminar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
               </div>
-            </form>
+            )}
+
           </div>
         </div>
       )}
 
+      {/* MODAL NUEVA CITA PÚBLICO */}
       {modalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#111827' }}>Agendar Cita</h2>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <form onSubmit={handleSubmitCita} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Nombre de la Clienta</label>
                 <input
@@ -301,15 +753,15 @@ export default function Home() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Manicurista</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.25rem' }}>Especialista</label>
                   <select
                     style={{ width: '100%', border: '1px solid #d1d5db', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#fff', boxSizing: 'border-box' }}
                     value={formData.manicurista_nombre}
                     onChange={(e) => setFormData({ ...formData, manicurista_nombre: e.target.value })}
                   >
-                    <option value="Manicurista 1">Manicurista 1</option>
-                    <option value="Manicurista 2">Manicurista 2</option>
-                    <option value="Manicurista 3">Manicurista 3</option>
+                    {especialistas.map((esp) => (
+                      <option key={esp.id} value={esp.nombre}>{esp.nombre}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -320,9 +772,9 @@ export default function Home() {
                     value={formData.servicio_nombre}
                     onChange={(e) => setFormData({ ...formData, servicio_nombre: e.target.value })}
                   >
-                    <option value="Manicure">Manicure (2h)</option>
-                    <option value="Pedicure">Pedicure (1h 40m)</option>
-                    <option value="Manicure + Pedicure">Manicure + Pedicure (3h 40m)</option>
+                    {servicios.map((s) => (
+                      <option key={s.id} value={s.nombre}>{s.nombre} ({s.duracion_minutos}m)</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -351,7 +803,7 @@ export default function Home() {
               </div>
 
               <p style={{ fontSize: '0.75rem', color: '#3f6212', backgroundColor: '#ecfccb', padding: '0.5rem', borderRadius: '0.375rem', margin: 0 }}>
-                📌 Duración estimada: <strong>{duracionTexto}</strong>
+                📌 Duración estimada: <strong>{duracionFormActual} Minutos</strong>
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
