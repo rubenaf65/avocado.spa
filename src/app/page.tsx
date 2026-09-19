@@ -362,29 +362,39 @@ export default function Home() {
     <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '1rem' }}>
       {/* Estilos CSS personalizados para la burbuja de hora y la franja roja */}
       <style jsx global>{`
-        /* Línea roja horizontal */
+        .fc .fc-timegrid-axis,
+        .fc .fc-timegrid-slot-label {
+          width: 70px !important;
+          min-width: 70px !important;
+          overflow: visible !important;
+        }
+
+        .fc .fc-timegrid-now-indicator-arrow {
+          margin-top: -12px !important;
+          left: 2px !important;
+          border: 1.5px solid #dc2626 !important;
+          background-color: #ffffff !important;
+          color: #dc2626 !important;
+          font-size: 0.72rem !important;
+          font-weight: 700 !important;
+          padding: 2px 6px !important;
+          border-radius: 9999px !important;
+          z-index: 30 !important;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+          white-space: nowrap !important;
+        }
+
         .fc .fc-timegrid-now-indicator-line {
           border-color: #ef4444 !important;
           border-width: 2px 0 0 0 !important;
-          z-index: 10 !important;
+          z-index: 20 !important;
+          left: 0 !important;
+          right: 0 !important;
+          width: 100% !important;
         }
 
-        /* Burbuja ovalada flotante con la hora actual en el eje lateral */
-        .fc .fc-timegrid-now-indicator-arrow {
-          margin-top: -12px !important;
-          border: 1.5px solid #dc2626 !important;
-          background-color: #ffffff !important;
-          color: #1e293b !important;
-          font-size: 0.72rem !important;
-          font-weight: 700 !important;
-          padding: 2px 7px !important;
-          border-radius: 9999px !important;
-          z-index: 12 !important;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-          display: flex !important;
-          align-items: center;
-          justify-content: center;
-          white-space: nowrap;
+        .fc-timegrid-body {
+          position: relative !important;
         }
       `}</style>
 
