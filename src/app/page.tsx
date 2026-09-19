@@ -10,12 +10,12 @@ import { supabase } from '../lib/supabase';
 const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
 
 const COLORES_PREDEFINIDOS = [
-  { bg: '#22c55e', text: '#ffffff' },
-  { bg: '#3b82f6', text: '#ffffff' },
-  { bg: '#f97316', text: '#ffffff' },
-  { bg: '#84cc16', text: '#ffffff' },
-  { bg: '#a855f7', text: '#ffffff' },
-  { bg: '#ec4899', text: '#ffffff' },
+  { bg: '#22c55e', border: '#15803d', text: '#ffffff' },
+  { bg: '#3b82f6', border: '#1d4ed8', text: '#ffffff' },
+  { bg: '#a855f7', border: '#7e22ce', text: '#ffffff' },
+  { bg: '#f97316', border: '#c2410c', text: '#ffffff' },
+  { bg: '#ec4899', border: '#be185d', text: '#ffffff' },
+  { bg: '#84cc16', border: '#4d7c0f', text: '#ffffff' },
 ];
 
 export default function Home() {
@@ -35,7 +35,7 @@ export default function Home() {
   const [nuevoEspNombre, setNuevoEspNombre] = useState('');
   const [nuevoServNombre, setNuevoServNombre] = useState('');
   const [nuevoServDuracion, setNuevoServDuracion] = useState(120);
-  const [nuevoServPrecio, setNuevoServPrecio] = useState<number | string>(0); // Nuevo estado para precio
+  const [nuevoServPrecio, setNuevoServPrecio] = useState<number | string>(0);
 
   // Estado para editar/mover cita desde Admin
   const [editingCita, setEditingCita] = useState<any | null>(null);
@@ -55,24 +55,23 @@ export default function Home() {
     setFormData((prev) => ({ ...prev, fecha: hoy }));
   }, []);
 
-  // Carga de datos principales optimizada con datos locales recién obtenidos
   const fetchData = useCallback(async () => {
-    // 1. Obtener Especialistas
+    // 1. Especialistas
     let currentEspecialistas: any[] = [];
     const { data: espData } = await supabase.from('especialistas').select('*').order('id', { ascending: true });
     if (espData && espData.length > 0) {
       currentEspecialistas = espData;
     } else {
       currentEspecialistas = [
-        { id: 1, nombre: 'Manicurista 1' },
-        { id: 2, nombre: 'Manicurista 2' },
-        { id: 3, nombre: 'Manicurista 3' }
+        { id: 1, nombre: 'JHOSSY' },
+        { id: 2, nombre: 'NICOLE' },
+        { id: 3, nombre: 'LALI' }
       ];
     }
     setEspecialistas(currentEspecialistas);
     setFormData((prev) => ({ ...prev, manicurista_nombre: prev.manicurista_nombre || currentEspecialistas[0].nombre }));
 
-    // 2. Obtener Servicios
+    // 2. Servicios
     let currentServicios: any[] = [];
     const { data: servData } = await supabase.from('servicios').select('*').order('id', { ascending: true });
     if (servData && servData.length > 0) {
@@ -87,7 +86,7 @@ export default function Home() {
     setServicios(currentServicios);
     setFormData((prev) => ({ ...prev, servicio_nombre: prev.servicio_nombre || currentServicios[0].nombre }));
 
-    // 3. Obtener Citas
+    // 3. Citas
     const { data: citasData, error } = await supabase
       .from('citas')
       .select('*')
@@ -119,7 +118,7 @@ export default function Home() {
         const servicioNom = item.servicio_nombre || 'Servicio';
         const manicuristaNom = item.manicurista_nombre || 'Especialista';
 
-        const espIndex = currentEspecialistas.findIndex((e) => e.nombre === manicuristaNom);
+        const espIndex = currentEspecialistas.findIndex((e) => e.nombre.toLowerCase() === manicuristaNom.toLowerCase());
         const colores =
           espIndex !== -1
             ? COLORES_PREDEFINIDOS[espIndex % COLORES_PREDEFINIDOS.length]
@@ -128,7 +127,7 @@ export default function Home() {
         return {
           id: String(item.id),
           resourceId: manicuristaNom,
-          title: `${clienteNom} - ${servicioNom} (${manicuristaNom})`,
+          title: `${clienteNom}\n${servicioNom}`,
           start: `${item.fecha}T${hInicio}`,
           end: `${item.fecha}T${hFin}`,
           backgroundColor: colores.bg,
@@ -240,8 +239,7 @@ export default function Home() {
     }
   };
 
-  // --- ACCIONES RÁPIDAS ADMINISTRATIVAS --- //
-
+  // Acciones Rápidas
   const handleLiberarCita = async (id: number) => {
     if (!confirm('¿Deseas liberar/cancelar este espacio de cita?')) return;
     const { error } = await supabase.from('citas').update({ estado: 'cancelada' }).eq('id', id);
@@ -361,35 +359,81 @@ export default function Home() {
   };
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '0.75rem' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1rem', borderRadius: '1rem', border: '1px solid #f3f4f6' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '1rem' }}>
+      {/* Estilos CSS inyectados para el NowIndicator tipo Fresha */}
+      <style jsx global>{`
+        /* Línea indicadora de la hora actual */
+        .fc .fc-timegrid-now-indicator-line {
+          border-color: #ef4444 !important;
+          border-width: 2px 0 0 0 !important;
+          z-index: 10 !important;
+        }
+
+        /* Indicador en el eje del tiempo (círculo rojo con hora) */
+        .fc .fc-timegrid-now-indicator-arrow {
+          margin-top: -12px !important;
+          border: none !important;
+          background: #ef4444 !important;
+          color: #ffffff !important;
+          font-size: 0.7rem !important;
+          font-weight: bold !important;
+          padding: 2px 6px !important;
+          border-radius: 12px !important;
+          z-index: 11 !important;
+        }
+      `}</style>
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         
-        {/* Leyenda de Especialistas */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', fontWeight: 600, flexWrap: 'wrap' }}>
+        {/* Encabezado e Indicadores de Especialistas (Estilo Fresha) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+          
+          <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {especialistas.map((esp, idx) => {
               const col = COLORES_PREDEFINIDOS[idx % COLORES_PREDEFINIDOS.length];
+              const inicial = esp.nombre ? esp.nombre.charAt(0).toUpperCase() : '?';
+              
               return (
-                <span key={esp.id || idx} style={{ color: col.bg }}>
-                  ● {esp.nombre}
-                </span>
+                <div key={esp.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+                  {/* Círculo con la inicial */}
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    border: `2px solid ${col.border}`,
+                    color: col.border,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                  }}>
+                    {inicial}
+                  </div>
+                  {/* Nombre en mayúsculas debajo */}
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#334155', letterSpacing: '0.05em' }}>
+                    {esp.nombre.toUpperCase()}
+                  </span>
+                </div>
               );
             })}
           </div>
 
           <button
             onClick={() => setAdminModalOpen(true)}
-            style={{ backgroundColor: isAdmin ? '#1e293b' : '#475569', color: '#ffffff', padding: '0.4rem 0.8rem', borderRadius: '0.375rem', border: 'none', fontSize: '0.85rem', cursor: 'pointer' }}
+            style={{ backgroundColor: isAdmin ? '#1e293b' : '#475569', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
           >
             {isAdmin ? '🔓 Panel Admin' : '🔒 Admin'}
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Control de Citas Avocado Spa</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Agenda Avocado Spa</h1>
           <button
             onClick={() => setModalOpen(true)}
-            style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 500, cursor: 'pointer', border: 'none' }}
+            style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', border: 'none' }}
           >
             + Nueva Cita
           </button>
@@ -519,7 +563,7 @@ export default function Home() {
       {/* MODAL ADMIN */}
       {adminModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
-          <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: isAdmin ? '850px' : '380px', width: '100%', maxHeight: '90vh', overflowY: 'auto', transition: 'all 0.3s ease' }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: isAdmin ? '850px' : '380px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             
             {!isAdmin ? (
               <div>
@@ -566,7 +610,6 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Tabs de navegación */}
                 <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid #e5e7eb', marginBottom: '1rem' }}>
                   <button
                     onClick={() => setAdminTab('citas')}
