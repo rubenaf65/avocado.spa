@@ -35,6 +35,7 @@ export default function Home() {
   const [nuevoEspNombre, setNuevoEspNombre] = useState('');
   const [nuevoServNombre, setNuevoServNombre] = useState('');
   const [nuevoServDuracion, setNuevoServDuracion] = useState(120);
+  const [nuevoServPrecio, setNuevoServPrecio] = useState<number | string>(0); // Nuevo estado para precio
 
   // Estado para editar/mover cita desde Admin
   const [editingCita, setEditingCita] = useState<any | null>(null);
@@ -78,9 +79,9 @@ export default function Home() {
       currentServicios = servData;
     } else {
       currentServicios = [
-        { id: 1, nombre: 'Manicure', duracion_minutos: 120 },
-        { id: 2, nombre: 'Pedicure', duracion_minutos: 100 },
-        { id: 3, nombre: 'Manicure + Pedicure', duracion_minutos: 220 }
+        { id: 1, nombre: 'Manicure', duracion_minutos: 120, precio: 0 },
+        { id: 2, nombre: 'Pedicure', duracion_minutos: 100, precio: 0 },
+        { id: 3, nombre: 'Manicure + Pedicure', duracion_minutos: 220, precio: 0 }
       ];
     }
     setServicios(currentServicios);
@@ -329,12 +330,19 @@ export default function Home() {
 
     const { error } = await supabase
       .from('servicios')
-      .insert([{ nombre: nuevoServNombre.trim(), duracion_minutos: Number(nuevoServDuracion) }]);
+      .insert([
+        { 
+          nombre: nuevoServNombre.trim(), 
+          duracion_minutos: Number(nuevoServDuracion),
+          precio: Number(nuevoServPrecio) || 0 
+        }
+      ]);
 
     if (!error) {
       alert('Servicio agregado con éxito.');
       setNuevoServNombre('');
       setNuevoServDuracion(120);
+      setNuevoServPrecio(0);
       fetchData();
     } else {
       alert('Error al agregar servicio: ' + error.message);
@@ -750,7 +758,7 @@ export default function Home() {
                 {/* TAB SERVICIOS */}
                 {adminTab === 'servicios' && (
                   <div>
-                    <form onSubmit={handleAgregarServicio} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <form onSubmit={handleAgregarServicio} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '0.5rem', marginBottom: '1rem' }}>
                       <input
                         type="text"
                         placeholder="Nombre del servicio"
@@ -767,6 +775,14 @@ export default function Home() {
                         style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.85rem' }}
                         required
                       />
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Precio ($)"
+                        value={nuevoServPrecio}
+                        onChange={(e) => setNuevoServPrecio(e.target.value)}
+                        style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.85rem' }}
+                      />
                       <button
                         type="submit"
                         style={{ padding: '0.5rem 1rem', backgroundColor: '#65a30d', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
@@ -781,6 +797,7 @@ export default function Home() {
                           <th style={{ padding: '0.5rem' }}>ID</th>
                           <th style={{ padding: '0.5rem' }}>Servicio</th>
                           <th style={{ padding: '0.5rem' }}>Duración</th>
+                          <th style={{ padding: '0.5rem' }}>Precio</th>
                           <th style={{ padding: '0.5rem', textAlign: 'right' }}>Acción</th>
                         </tr>
                       </thead>
@@ -790,6 +807,7 @@ export default function Home() {
                             <td style={{ padding: '0.5rem' }}>#{s.id}</td>
                             <td style={{ padding: '0.5rem', fontWeight: 600 }}>{s.nombre}</td>
                             <td style={{ padding: '0.5rem' }}>{s.duracion_minutos} min</td>
+                            <td style={{ padding: '0.5rem' }}>${s.precio ?? 0}</td>
                             <td style={{ padding: '0.5rem', textAlign: 'right' }}>
                               <button
                                 onClick={() => handleEliminarServicio(s.id)}
