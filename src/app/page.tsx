@@ -360,32 +360,37 @@ export default function Home() {
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '1rem' }}>
-      {/* Estilos CSS inyectados para el NowIndicator tipo Fresha */}
+      {/* Estilos CSS personalizados para la burbuja de hora y la franja roja */}
       <style jsx global>{`
-        /* Línea indicadora de la hora actual */
+        /* Línea roja horizontal */
         .fc .fc-timegrid-now-indicator-line {
           border-color: #ef4444 !important;
           border-width: 2px 0 0 0 !important;
           z-index: 10 !important;
         }
 
-        /* Indicador en el eje del tiempo (círculo rojo con hora) */
+        /* Burbuja ovalada flotante con la hora actual en el eje lateral */
         .fc .fc-timegrid-now-indicator-arrow {
           margin-top: -12px !important;
-          border: none !important;
-          background: #ef4444 !important;
-          color: #ffffff !important;
-          font-size: 0.7rem !important;
-          font-weight: bold !important;
-          padding: 2px 6px !important;
-          border-radius: 12px !important;
-          z-index: 11 !important;
+          border: 1.5px solid #dc2626 !important;
+          background-color: #ffffff !important;
+          color: #1e293b !important;
+          font-size: 0.72rem !important;
+          font-weight: 700 !important;
+          padding: 2px 7px !important;
+          border-radius: 9999px !important;
+          z-index: 12 !important;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+          display: flex !important;
+          align-items: center;
+          justify-content: center;
+          white-space: nowrap;
         }
       `}</style>
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         
-        {/* Encabezado e Indicadores de Especialistas (Estilo Fresha) */}
+        {/* Encabezado e Indicadores de Especialistas */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
           
           <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -395,7 +400,6 @@ export default function Home() {
               
               return (
                 <div key={esp.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
-                  {/* Círculo con la inicial */}
                   <div style={{
                     width: '42px',
                     height: '42px',
@@ -412,7 +416,6 @@ export default function Home() {
                   }}>
                     {inicial}
                   </div>
-                  {/* Nombre en mayúsculas debajo */}
                   <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#334155', letterSpacing: '0.05em' }}>
                     {esp.nombre.toUpperCase()}
                   </span>
@@ -448,6 +451,17 @@ export default function Home() {
             timeZone="local"
             nowIndicator={true}
             now={new Date().toISOString()}
+            nowIndicatorContent={(args) => {
+              if (args.isAxis) {
+                const horaActual = new Date().toLocaleTimeString('es-ES', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                });
+                return <span>{horaActual}</span>;
+              }
+              return null;
+            }}
             height="auto"
             headerToolbar={{
               left: 'prev,next today',
