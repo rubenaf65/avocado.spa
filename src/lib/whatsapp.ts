@@ -1,7 +1,7 @@
-// lib/whatsapp.ts
+// src/lib/whatsapp.ts
 
-export async function enviarMensajeWhatsApp(telefono: string, mensaje: string) {
-  // Formatear el número a formato internacional (Venezuela +58)
+export function generarLinkWhatsApp(telefono: string, mensaje: string): string {
+  // Limpiar el número y formatear a código de país (+58 para Venezuela)
   let numLimpio = telefono.replace(/\D/g, '');
   if (numLimpio.startsWith('0')) {
     numLimpio = '58' + numLimpio.substring(1);
@@ -9,23 +9,8 @@ export async function enviarMensajeWhatsApp(telefono: string, mensaje: string) {
     numLimpio = '58' + numLimpio;
   }
 
-  try {
-    // Ejemplo de llamado API (Sustituye la URL y credenciales por las de tu proveedor: Twilio, UltraMsg, etc.)
-    const res = await fetch(process.env.WHATSAPP_API_URL || '', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.WHATSAPP_API_TOKEN}`
-      },
-      body: JSON.stringify({
-        to: numLimpio,
-        message: mensaje
-      })
-    });
+  // Codificar el texto para la URL
+  const mensajeEncode = encodeURIComponent(mensaje);
 
-    return res.ok;
-  } catch (error) {
-    console.error('Error enviando WhatsApp:', error);
-    return false;
-  }
+  return `https://api.whatsapp.com/send?phone=${numLimpio}&text=${mensajeEncode}`;
 }

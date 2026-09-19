@@ -6,6 +6,8 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import { supabase } from '../lib/supabase';
+import { generarLinkWhatsApp } from '@/lib/whatsapp';
+import { msgConfirmacionCliente, msgNotificacionAdmin, TELEFONO_ADMIN } from '@/lib/mensajesWhatsApp';
 
 const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
 
@@ -201,6 +203,16 @@ export default function Home() {
     return true;
   };
 
+  // Función para abrir la notificación por WhatsApp
+  const notificarPorWhatsApp = (datosNuevaCita: any) => {
+    const urlCliente = generarLinkWhatsApp(
+      datosNuevaCita.cliente_telefono,
+      msgConfirmacionCliente(datosNuevaCita)
+    );
+
+    window.open(urlCliente, '_blank');
+  };
+
   // Crear cita público
   const handleSubmitCita = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,6 +272,7 @@ export default function Home() {
         alert('¡Cita agendada correctamente!');
         setModalOpen(false);
         fetchData();
+        notificarPorWhatsApp(payload);
       } else {
         alert(`Error al guardar cita: ${result.message || 'Ocurrió un error en el servidor.'}`);
       }
@@ -787,6 +800,15 @@ export default function Home() {
                                 <td style={{ padding: '0.5rem' }}>{cita.servicio_nombre}</td>
                                 <td style={{ padding: '0.5rem' }}>
                                   <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                                    <button
+                                      onClick={() => {
+                                        const urlCliente = generarLinkWhatsApp(cita.cliente_telefono, msgConfirmacionCliente(cita));
+                                        window.open(urlCliente, '_blank');
+                                      }}
+                                      style={{ padding: '0.25rem 0.5rem', backgroundColor: '#25D366', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                                    >
+                                      💬 WhatsApp
+                                    </button>
                                     <button
                                       onClick={() => setEditingCita(cita)}
                                       style={{ padding: '0.25rem 0.5rem', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.75rem' }}
