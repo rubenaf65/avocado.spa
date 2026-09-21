@@ -2,23 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 1. Ampliar el eje de tiempo para que la etiqueta no se corte */
+/* 1. Ajustar ancho del eje de tiempo */
 .fc .fc-timegrid-axis,
 .fc .fc-timegrid-slot-label {
   width: 70px !important;
   min-width: 70px !important;
-  overflow: visible !important;
 }
 
-/* 2. Permitir que los contenedores del indicador de hora no oculten el desborde */
-.fc .fc-timegrid-axis-frame,
-.fc .fc-timegrid-axis-cushion,
-.fc .fc-timegrid-now-indicator-container {
-  overflow: visible !important;
-  position: relative !important;
-}
-
-/* 3. Estilo de la burbuja flotante con la hora */
+/* 2. Burbuja/Globo flotante del indicador de hora */
 .fc .fc-timegrid-now-indicator-arrow {
   margin-top: -12px !important;
   left: 2px !important;
@@ -34,30 +25,17 @@
   white-space: nowrap !important;
 }
 
-/* 4. Estilo y extensión de la línea roja a través de toda la agenda */
-.fc .fc-timegrid-now-indicator-container {
-  overflow: visible !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-}
-
+/* 3. Estilo de la línea roja continua en el área de eventos */
 .fc .fc-timegrid-now-indicator-line {
   border-color: #ef4444 !important;
   border-style: solid !important;
   border-width: 2px 0 0 0 !important;
-  z-index: 20 !important;
-  position: absolute !important;
-  left: 70px !important; /* Inicia justo donde termina el eje de las horas */
-  right: 0 !important;
-  width: calc(100% - 70px) !important; /* Cubre el resto del ancho de las columnas */
+  z-index: 15 !important;
 }
 
-/* 5. Asegurar que los contenedores no recorten el desborde horizontal */
-.fc-timegrid-slots,
-.fc-timegrid-cols,
-.fc .fc-timegrid-body {
-  position: relative !important;
-  overflow: visible !important;
+/* 4. Asegurar que las celdas de las columnas permitan ver la línea roja */
+.fc-timegrid-cols .fc-timegrid-now-indicator-line {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
 }
