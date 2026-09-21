@@ -24,8 +24,8 @@ export interface ServicioReporte {
 interface ReporteSemanalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  citas: CitaReporte[];
-  servicios: ServicioReporte[];
+  citas?: CitaReporte[];
+  servicios?: ServicioReporte[];
 }
 
 interface DesgloseEspecialista {
@@ -38,8 +38,8 @@ export default function ReporteSemanalModal({
   onClose,
   citas = [],
   servicios = []
-}: ReporteSemanalModalProps): React.JSX.Element | null {
-  // Rango por defecto (Lunes a Domingo)
+}: ReporteSemanalModalProps) {
+  // Rango de la semana actual (Lunes a Domingo)
   const defaultRange = useMemo(() => {
     const d = new Date();
     const day = d.getDay();
@@ -59,13 +59,13 @@ export default function ReporteSemanalModal({
 
   if (!isOpen) return null;
 
-  // Filtrar citas dentro del rango
+  // Filtrar citas dentro del rango seleccionado
   const citasFiltradas = citas.filter((cita) => {
     if (cita.estado === 'cancelada') return false;
     return cita.fecha >= fechaInicio && cita.fecha <= fechaFin;
   });
 
-  // Mapa de precios
+  // Mapa de precios de servicios
   const preciosServiciosMap: Record<string, number> = servicios.reduce((acc, serv) => {
     if (serv && serv.nombre) {
       acc[serv.nombre.toLowerCase()] = Number(serv.precio) || 0;
@@ -73,7 +73,7 @@ export default function ReporteSemanalModal({
     return acc;
   }, {} as Record<string, number>);
 
-  // Agrupar por especialista
+  // Agrupar métricas por especialista
   const desglosePorEspecialista: Record<string, DesgloseEspecialista> = citasFiltradas.reduce((acc, cita) => {
     const esp = cita.manicurista_nombre || 'Sin Asignar';
     const precio = preciosServiciosMap[(cita.servicio_nombre || '').toLowerCase()] || 0;
@@ -88,7 +88,6 @@ export default function ReporteSemanalModal({
     return acc;
   }, {} as Record<string, DesgloseEspecialista>);
 
-  // Totales generales
   const totalCitasGeneral = citasFiltradas.length;
   const totalIngresosGeneral = Object.values(desglosePorEspecialista).reduce(
     (sum, esp) => sum + esp.totalIngresos,
@@ -127,7 +126,7 @@ export default function ReporteSemanalModal({
         <div
           style={{
             display: 'flex',
-            justify: 'space-between',
+            justifyContent: 'space-between',
             alignItems: 'center',
             marginBottom: '1rem',
             borderBottom: '1px solid #e5e7eb',
@@ -139,7 +138,7 @@ export default function ReporteSemanalModal({
               📊 Reporte Semanal de Rendimiento
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-              Resumen de citas e ingresos estimados
+              Resumen de citas finalizadas e ingresos estimados
             </p>
           </div>
           <button
@@ -210,7 +209,7 @@ export default function ReporteSemanalModal({
           </div>
         </div>
 
-        {/* Resumen */}
+        {/* Tarjetas de Métricas */}
         <div
           style={{
             display: 'grid',

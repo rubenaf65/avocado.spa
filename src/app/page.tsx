@@ -683,22 +683,24 @@ export default function Home() {
             ) : (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Panel Administrativo</h2>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button
-                      onClick={() => setReporteModalOpen(true)}
-                      style={{ padding: '0.35rem 0.7rem', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                    >
-                      📊 Reporte Semanal
-                    </button>
-                    <button
-                      onClick={() => setAdminModalOpen(false)}
-                      style={{ padding: '0.35rem 0.7rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                    >
-                      ✕ Cerrar
-                    </button>
-                  </div>
-                </div>
+  <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Panel Administrativo</h2>
+  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+    <button
+      type="button"
+      onClick={() => setReporteModalOpen(true)}
+      style={{ padding: '0.35rem 0.7rem', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+    >
+      📊 Reporte Semanal
+    </button>
+    <button
+      type="button"
+      onClick={() => setAdminModalOpen(false)}
+      style={{ padding: '0.35rem 0.7rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+    >
+      ✕ Cerrar
+    </button>
+  </div>
+</div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid #e5e7eb', marginBottom: '1rem' }}>
                   <button
@@ -972,7 +974,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* MODAL REPORTE SEMANAL */}
+    {/* MODAL REPORTE SEMANAL */}
       <ReporteSemanalModal
         isOpen={reporteModalOpen}
         onClose={() => setReporteModalOpen(false)}
