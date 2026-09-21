@@ -195,10 +195,10 @@ export default function Home() {
     const endMin = startMin + duracionMinutos;
 
     const limiteInicioMin = 9 * 60;
-    const limiteFinMin = 17 * 60;
+    const limiteFinMin = 18 * 60;
 
     if (startMin < limiteInicioMin || endMin > limiteFinMin) {
-      alert('⚠️ El horario permitido de atención es de 9:00 AM a 5:00 PM. Por favor selecciona un horario adecuado.');
+      alert('⚠️ El horario permitido de atención es de 9:00 AM a 6:00 PM. Por favor selecciona un horario adecuado.');
       return false;
     }
 
@@ -538,7 +538,7 @@ export default function Home() {
               timeGridWeek: 'Semana'
             }}
             slotMinTime="09:00:00"
-            slotMaxTime="17:00:00"
+            slotMaxTime="18:00:00"
             allDaySlot={false}
             events={events}
           />
@@ -551,7 +551,7 @@ export default function Home() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '0.75rem', maxWidth: '420px', width: '100%' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.25rem', color: '#111827' }}>Agendar Nueva Cita</h2>
-            <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem' }}>Horario: Martes a Sábado (9:00 AM - 5:00 PM)</p>
+            <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem' }}>Horario: Martes a Sábado (9:00 AM - 6:00 PM)</p>
             
             <form onSubmit={handleSubmitCita} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
