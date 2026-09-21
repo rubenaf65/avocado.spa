@@ -2,14 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 1. Ancho del eje de las horas (columna izquierda) */
+/* 1. Definir ancho fijo para la columna de horas */
 .fc .fc-timegrid-axis,
 .fc .fc-timegrid-slot-label {
   width: 70px !important;
   min-width: 70px !important;
 }
 
-/* 2. Burbuja flotante con la hora actual (rojo #dc2626) */
+/* 2. Contenedor del indicador en el eje lateral */
+.fc .fc-timegrid-axis-frame {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* 3. Estilo de la burbuja flotante con la hora */
 .fc .fc-timegrid-now-indicator-arrow {
   margin-top: -12px !important;
   left: 2px !important;
@@ -23,32 +29,30 @@
   z-index: 30 !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   white-space: nowrap !important;
-  position: relative !important; /* Necesario para el pseudoelemento */
 }
 
-/* 3. Proyectar la línea roja continua DESDE el globo (el truco definitivo) */
-.fc .fc-timegrid-now-indicator-arrow::after {
+/* 4. Proyección forzada de la franja roja horizontal a través de la tabla */
+.fc .fc-timegrid-now-indicator-arrow::before {
   content: '' !important;
   position: absolute !important;
-  top: 50% !important; /* Centrado vertical con el globo */
-  left: 100% !important; /* Empieza donde termina el globo */
-  
-  /* Un ancho exagerado para cruzar siempre todas las columnas de la semana */
-  width: 2000px !important; 
-  height: 2px !important; /* Grosor idéntico al borde del globo */
-  
-  background-color: #dc2626 !important; /* Mismo color rojo */
-  pointer-events: none !important; /* Para que no interfiera con clics */
-  z-index: 10 !important; /* Por debajo del globo, pero por encima de las celdas */
+  top: 50% !important;
+  left: 100% !important;
+  width: 100vw !important; /* Extensión continua a lo largo de todo el ancho visible */
+  height: 2px !important;
+  background-color: #dc2626 !important;
+  z-index: 25 !important;
+  pointer-events: none !important;
 }
 
-/* 4. Ocultar el elemento de línea horizontal nativo de FullCalendar */
+/* 5. Desactivar la línea nativa para prevenir inconsistencias de posicionamiento */
 .fc .fc-timegrid-now-indicator-line {
   display: none !important;
 }
 
-/* 5. Asegurar que el contenedor principal de FullCalendar no corte la línea */
+/* 6. Permitir la visibilidad en las capas contenedoras */
 .fc .fc-timegrid-body,
+.fc .fc-timegrid-slots,
+.fc .fc-scrollgrid-sync-table,
 .fc-theme-standard .fc-scrollgrid {
   overflow: visible !important;
 }
