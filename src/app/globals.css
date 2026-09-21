@@ -2,14 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 1. Ancho fijo para el eje de tiempo */
+/* 1. Ancho del eje de las horas */
 .fc .fc-timegrid-axis,
 .fc .fc-timegrid-slot-label {
   width: 70px !important;
   min-width: 70px !important;
 }
 
-/* 2. Estilo de la burbuja flotante del indicador de hora */
+/* 2. Burbuja flotante con la hora actual */
 .fc .fc-timegrid-now-indicator-arrow {
   margin-top: -12px !important;
   left: 2px !important;
@@ -23,26 +23,29 @@
   z-index: 30 !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   white-space: nowrap !important;
+  position: relative !important;
 }
 
-/* 3. Permitir que la línea salga del contenedor del eje sin alterar las celdas de eventos */
-.fc .fc-timegrid-now-indicator-container {
-  overflow: visible !important;
-}
-
-/* 4. Extender la línea roja transversalmente */
-.fc .fc-timegrid-now-indicator-line {
-  border-color: #ef4444 !important;
-  border-style: solid !important;
-  border-width: 2px 0 0 0 !important;
-  z-index: 15 !important;
+/* 3. Proyectar la línea roja continua desde el lado derecho de la burbuja */
+.fc .fc-timegrid-now-indicator-arrow::after {
+  content: '' !important;
   position: absolute !important;
-  left: 0 !important;
-  width: 100% !important;
+  top: 50% !important;
+  left: 100% !important;
+  width: 1000px !important; /* Extensión continua a través de todas las columnas */
+  height: 2px !important;
+  background-color: #ef4444 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
 }
 
-/* 5. Romper la restricción de desborde únicamente en la rejilla de tiempo */
-.fc .fc-timegrid-slots td,
-.fc .fc-timegrid-cols td {
-  overflow: visible !important;
+/* 4. Ocultar el elemento de línea nativo de FullCalendar para evitar duplicados */
+.fc .fc-timegrid-now-indicator-line {
+  display: none !important;
+}
+
+/* 5. Asegurar que el contenedor principal permita ver la proyección de la línea */
+.fc .fc-timegrid-body,
+.fc-theme-standard .fc-scrollgrid {
+  overflow: hidden !important;
 }
