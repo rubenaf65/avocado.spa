@@ -7,7 +7,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import { supabase } from '../lib/supabase';
 import { generarLinkWhatsApp } from '@/lib/whatsapp';
-import { msgConfirmacionCliente, msgNotificacionAdmin, TELEFONO_ADMIN } from '@/lib/mensajesWhatsApp';
+import { msgConfirmacionCliente } from '@/lib/mensajesWhatsApp';
+import ReporteSemanalModal from '@/components/ReporteSemanalModal';
 
 const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
 
@@ -29,6 +30,7 @@ export default function Home() {
   // Modales y estados
   const [modalOpen, setModalOpen] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [reporteModalOpen, setReporteModalOpen] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTab, setAdminTab] = useState<'citas' | 'especialistas' | 'servicios'>('citas');
@@ -181,7 +183,7 @@ export default function Home() {
   const validarHorarioYDia = (fechaStr: string, horaInicioStr: string, duracionMinutos: number) => {
     const [year, month, day] = fechaStr.split('-').map(Number);
     const dateObj = new Date(year, month - 1, day);
-    const dayOfWeek = dateObj.getDay(); // 0: Domingo, 1: Lunes, 2: Martes, ..., 6: Sábado
+    const dayOfWeek = dateObj.getDay();
 
     if (dayOfWeek === 0 || dayOfWeek === 1) {
       alert('⚠️ Solo se pueden agendar citas de Martes a Sábado.');
@@ -192,8 +194,8 @@ export default function Home() {
     const startMin = h * 60 + m;
     const endMin = startMin + duracionMinutos;
 
-    const limiteInicioMin = 9 * 60;  // 09:00 AM
-    const limiteFinMin = 17 * 60;   // 05:00 PM (17:00)
+    const limiteInicioMin = 9 * 60;
+    const limiteFinMin = 17 * 60;
 
     if (startMin < limiteInicioMin || endMin > limiteFinMin) {
       alert('⚠️ El horario permitido de atención es de 9:00 AM a 5:00 PM. Por favor selecciona un horario adecuado.');
@@ -203,14 +205,13 @@ export default function Home() {
     return true;
   };
 
-  // Función para abrir la notificación por WhatsApp garantizando apertura
+  // Notificación por WhatsApp
   const notificarPorWhatsApp = (datosNuevaCita: any) => {
     const urlCliente = generarLinkWhatsApp(
       datosNuevaCita.cliente_telefono,
       msgConfirmacionCliente(datosNuevaCita)
     );
 
-    // Intentar abrir en nueva pestaña; si el navegador bloquea la ventana emergente, redirige en la pestaña actual
     const win = window.open(urlCliente, '_blank');
     if (!win || win.closed || typeof win.closed === 'undefined') {
       window.location.href = urlCliente;
@@ -504,14 +505,14 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Calendario ajustado al rango de atención */}
+        {/* Calendario */}
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <FullCalendar
             plugins={[timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
             locale={esLocale}
             timeZone="local"
-            hiddenDays={[0, 1]} // Oculta Domingo (0) y Lunes (1)
+            hiddenDays={[0, 1]}
             nowIndicator={true}
             now={new Date().toISOString()}
             nowIndicatorContent={(args) => {
@@ -683,12 +684,20 @@ export default function Home() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Panel Administrativo</h2>
-                  <button
-                    onClick={() => setAdminModalOpen(false)}
-                    style={{ padding: '0.35rem 0.7rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                  >
-                    ✕ Cerrar
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setReporteModalOpen(true)}
+                      style={{ padding: '0.35rem 0.7rem', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                    >
+                      📊 Reporte Semanal
+                    </button>
+                    <button
+                      onClick={() => setAdminModalOpen(false)}
+                      style={{ padding: '0.35rem 0.7rem', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                    >
+                      ✕ Cerrar
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid #e5e7eb', marginBottom: '1rem' }}>
@@ -962,6 +971,14 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* MODAL REPORTE SEMANAL */}
+      <ReporteSemanalModal
+        isOpen={reporteModalOpen}
+        onClose={() => setReporteModalOpen(false)}
+        citas={citasList}
+        servicios={servicios}
+      />
     </main>
   );
 }
