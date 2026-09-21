@@ -12,8 +12,10 @@
 
 /* 2. Permitir que los contenedores del indicador de hora no oculten el desborde */
 .fc .fc-timegrid-axis-frame,
-.fc .fc-timegrid-axis-cushion {
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-timegrid-now-indicator-container {
   overflow: visible !important;
+  position: relative !important;
 }
 
 /* 3. Estilo de la burbuja flotante con la hora */
@@ -32,23 +34,23 @@
   white-space: nowrap !important;
 }
 
-/* 4. Hacer que la línea roja cruce horizontalmente todas las columnas */
-.fc .fc-timegrid-now-indicator-container {
-  overflow: visible !important;
-}
-
+/* 4. Extender la línea roja a lo largo de TODA la tabla/pantalla */
 .fc .fc-timegrid-now-indicator-line {
   border-color: #ef4444 !important;
+  border-style: solid !important;
   border-width: 2px 0 0 0 !important;
-  z-index: 20 !important;
+  z-index: 25 !important;
   position: absolute !important;
   left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
+  /* Fuerza a la línea a cubrir el ancho total de la vista del calendario */
+  width: 100vw !important;
+  max-width: 100% !important;
 }
 
-/* 5. Extender la visibilidad en el contenedor general del grid */
-.fc .fc-timegrid-body {
-  position: relative !important;
+/* 5. Asegurar que los contenedores padres de FullCalendar no corten la línea horizontal */
+.fc .fc-timegrid-body,
+.fc .fc-scroller,
+.fc .fc-scroller-liquid-absolute,
+.fc-theme-standard .fc-scrollgrid {
   overflow: visible !important;
 }
