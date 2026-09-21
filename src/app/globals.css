@@ -34,23 +34,30 @@
   white-space: nowrap !important;
 }
 
-/* 4. Extender la línea roja a lo largo de TODA la tabla/pantalla */
+/* 4. Estilo y extensión de la línea roja a través de toda la agenda */
+.fc .fc-timegrid-now-indicator-container {
+  overflow: visible !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+}
+
 .fc .fc-timegrid-now-indicator-line {
   border-color: #ef4444 !important;
   border-style: solid !important;
   border-width: 2px 0 0 0 !important;
-  z-index: 25 !important;
+  z-index: 20 !important;
   position: absolute !important;
-  left: 0 !important;
-  /* Fuerza a la línea a cubrir el ancho total de la vista del calendario */
-  width: 100vw !important;
-  max-width: 100% !important;
+  left: 70px !important; /* Inicia justo donde termina el eje de las horas */
+  right: 0 !important;
+  width: calc(100% - 70px) !important; /* Cubre el resto del ancho de las columnas */
 }
 
-/* 5. Asegurar que los contenedores padres de FullCalendar no corten la línea horizontal */
-.fc .fc-timegrid-body,
-.fc .fc-scroller,
-.fc .fc-scroller-liquid-absolute,
-.fc-theme-standard .fc-scrollgrid {
+/* 5. Asegurar que los contenedores no recorten el desborde horizontal */
+.fc-timegrid-slots,
+.fc-timegrid-cols,
+.fc .fc-timegrid-body {
+  position: relative !important;
   overflow: visible !important;
 }
