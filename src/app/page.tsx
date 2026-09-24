@@ -622,26 +622,25 @@ export default function Home() {
         {/* Calendario */}
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <FullCalendar
-            plugins={[timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
-            locale={esLocale}
-            timeZone="local"
-            hiddenDays={[0, 1]}
-            selectable={true}
-            dateClick={handleDateClick}
-            nowIndicator={true}
-now={new Date()}
-nowIndicatorContent={(args) => {
-  if (args.isAxis) {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const hours12 = hours % 12 === 0 ? 12 : hours % 12;
-    const minutesFormatted = minutes < 10 ? `0${minutes}` : minutes;
-    return <span>{`${hours12}:${minutesFormatted}`}</span>;
-  }
-  return null;
-}}
+  plugins={[timeGridPlugin, interactionPlugin]}
+  initialView="timeGridWeek"
+  locale={esLocale}
+  nowIndicator={true}
+  now={new Date()} // Forzar el tiempo local actual
+  nowIndicatorContent={(args) => {
+    if (args.isAxis) {
+      const date = args.date || new Date();
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const hours12 = hours % 12 === 0 ? 12 : hours % 12;
+      const minutesFormatted = minutes < 10 ? `0${minutes}` : minutes;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      return `${hours12}:${minutesFormatted} ${ampm}`;
+    }
+    return null;
+  }}
+  // ... resto de tus props
+/>
             height="auto"
             headerToolbar={{
               left: 'prev,next today',
