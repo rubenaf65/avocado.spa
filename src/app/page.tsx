@@ -141,6 +141,7 @@ export default function Home() {
           textColor: colores.text,
           borderColor: colores.border,
           extendedProps: {
+            rawCita: item,
             cliente: clienteNom,
             servicio: servicioNom,
             manicurista: manicuristaNom,
@@ -255,6 +256,17 @@ export default function Home() {
     }));
 
     setModalOpen(true);
+  };
+
+  // Clic sobre un evento existente
+  const handleEventClick = (arg: any) => {
+    if (!isAdmin) return;
+    const rawCita = arg.event.extendedProps.rawCita;
+    if (rawCita) {
+      setEditingCita(rawCita);
+      setAdminTab('citas');
+      setAdminModalOpen(true);
+    }
   };
 
   // Crear cita público
@@ -622,25 +634,26 @@ export default function Home() {
         {/* Calendario */}
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <FullCalendar
-  plugins={[timeGridPlugin, interactionPlugin]}
-  initialView="timeGridWeek"
-  locale={esLocale}
-  nowIndicator={true}
-  now={new Date()} // Forzar el tiempo local actual
-  nowIndicatorContent={(args) => {
-    if (args.isAxis) {
-      const date = args.date || new Date();
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      const hours12 = hours % 12 === 0 ? 12 : hours % 12;
-      const minutesFormatted = minutes < 10 ? `0${minutes}` : minutes;
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      return `${hours12}:${minutesFormatted} ${ampm}`;
-    }
-    return null;
-  }}
-  // ... resto de tus props
-/>
+            plugins={[timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            locale={esLocale}
+            nowIndicator={true}
+            now={new Date()}
+            selectable={true}
+            dateClick={handleDateClick}
+            eventClick={handleEventClick}
+            nowIndicatorContent={(args: any) => {
+              if (args.isAxis) {
+                const date = args.date || new Date();
+                const hours = date.getHours();
+                const minutes = date.getMinutes();
+                const hours12 = hours % 12 === 0 ? 12 : hours % 12;
+                const minutesFormatted = minutes < 10 ? `0${minutes}` : minutes;
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                return `${hours12}:${minutesFormatted} ${ampm}`;
+              }
+              return null;
+            }}
             height="auto"
             headerToolbar={{
               left: 'prev,next today',
@@ -656,7 +669,7 @@ export default function Home() {
             slotMaxTime="18:00:00"
             allDaySlot={false}
             events={eventsFiltrados}
-            eventContent={(eventInfo) => {
+            eventContent={(eventInfo: any) => {
               const { cliente, servicio, horaInicioStr, horaFinStr } = eventInfo.event.extendedProps;
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'flex-start', color: eventInfo.event.textColor }}>
