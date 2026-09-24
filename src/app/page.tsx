@@ -27,6 +27,9 @@ export default function Home() {
   const [especialistas, setEspecialistas] = useState<any[]>([]);
   const [servicios, setServicios] = useState<any[]>([]);
 
+  // Estado para filtrado por especialista
+  const [especialistaSeleccionada, setEspecialistaSeleccionada] = useState<string | null>(null);
+
   // Modales y estados
   const [modalOpen, setModalOpen] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
@@ -225,6 +228,14 @@ export default function Home() {
     }
   };
 
+  // Abrir modal de nueva cita con especialista preseleccionada si aplica
+  const handleAbrirModalCita = () => {
+    if (especialistaSeleccionada) {
+      setFormData((prev) => ({ ...prev, manicurista_nombre: especialistaSeleccionada }));
+    }
+    setModalOpen(true);
+  };
+
   // Crear cita público
   const handleSubmitCita = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -417,6 +428,15 @@ export default function Home() {
     }
   };
 
+  // Eventos y citas filtrados según especialistaSeleccionada
+  const eventsFiltrados = especialistaSeleccionada
+    ? events.filter((e) => e.extendedProps.manicurista.toLowerCase() === especialistaSeleccionada.toLowerCase())
+    : events;
+
+  const citasFiltradas = especialistaSeleccionada
+    ? citasList.filter((c) => c.manicurista_nombre.toLowerCase() === especialistaSeleccionada.toLowerCase())
+    : citasList;
+
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '1rem' }}>
       <style jsx global>{`
@@ -465,22 +485,76 @@ export default function Home() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         
-        {/* Encabezado e Indicadores de Especialistas */}
+        {/* Encabezado e Indicadores / Filtros de Especialistas */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Opción para mostrar todas */}
+            <button
+              type="button"
+              onClick={() => setEspecialistaSeleccionada(null)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.3rem',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                opacity: especialistaSeleccionada === null ? 1 : 0.5,
+                transform: especialistaSeleccionada === null ? 'scale(1.05)' : 'scale(1)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: especialistaSeleccionada === null ? '#0f172a' : '#f1f5f9',
+                color: especialistaSeleccionada === null ? '#ffffff' : '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                fontSize: '0.85rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              }}>
+                TODAS
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#334155', letterSpacing: '0.05em' }}>
+                TODAS
+              </span>
+            </button>
+
             {especialistas.map((esp, idx) => {
               const col = COLORES_PREDEFINIDOS[idx % COLORES_PREDEFINIDOS.length];
               const inicial = esp.nombre ? esp.nombre.charAt(0).toUpperCase() : '?';
-              
+              const estaSeleccionada = especialistaSeleccionada?.toLowerCase() === esp.nombre.toLowerCase();
+
               return (
-                <div key={esp.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+                <button
+                  key={esp.id || idx}
+                  type="button"
+                  onClick={() => setEspecialistaSeleccionada(estaSeleccionada ? null : esp.nombre)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    opacity: especialistaSeleccionada === null || estaSeleccionada ? 1 : 0.4,
+                    transform: estaSeleccionada ? 'scale(1.08)' : 'scale(1)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
                   <div style={{
                     width: '42px',
                     height: '42px',
                     borderRadius: '50%',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: estaSeleccionada ? col.border : '#ffffff',
                     border: `2px solid ${col.border}`,
-                    color: col.border,
+                    color: estaSeleccionada ? '#ffffff' : col.border,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -493,7 +567,7 @@ export default function Home() {
                   <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#334155', letterSpacing: '0.05em' }}>
                     {esp.nombre ? esp.nombre.toUpperCase() : ''}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -508,11 +582,13 @@ export default function Home() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Agenda Avocado Spa</h1>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>
+              Agenda Avocado Spa {especialistaSeleccionada ? `- ${especialistaSeleccionada.toUpperCase()}` : ''}
+            </h1>
             <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Horario de atención: Martes a Sábado, 9:00 AM - 5:00 PM</p>
           </div>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={handleAbrirModalCita}
             style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', border: 'none' }}
           >
             + Nueva Cita
@@ -554,7 +630,7 @@ export default function Home() {
             slotMinTime="09:00:00"
             slotMaxTime="18:00:00"
             allDaySlot={false}
-            events={events}
+            events={eventsFiltrados}
             eventContent={(eventInfo) => {
               const { cliente, servicio, horaInicioStr, horaFinStr } = eventInfo.event.extendedProps;
               return (
@@ -738,7 +814,7 @@ export default function Home() {
                     onClick={() => setAdminTab('citas')}
                     style={{ padding: '0.5rem 1rem', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', borderBottom: adminTab === 'citas' ? '3px solid #65a30d' : 'transparent', color: adminTab === 'citas' ? '#65a30d' : '#4b5563' }}
                   >
-                    📅 Citas ({citasList.length})
+                    📅 Citas ({citasFiltradas.length})
                   </button>
                   <button
                     onClick={() => setAdminTab('especialistas')}
@@ -832,12 +908,12 @@ export default function Home() {
                           </tr>
                         </thead>
                         <tbody>
-                          {citasList.length === 0 ? (
+                          {citasFiltradas.length === 0 ? (
                             <tr>
                               <td colSpan={6} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>No hay citas registradas.</td>
                             </tr>
                           ) : (
-                            citasList.map((cita) => (
+                            citasFiltradas.map((cita) => (
                               <tr key={cita.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                                 <td style={{ padding: '0.5rem' }}>{cita.fecha}</td>
                                 <td style={{ padding: '0.5rem' }}>{cita.hora_inicio} - {cita.hora_fin}</td>
