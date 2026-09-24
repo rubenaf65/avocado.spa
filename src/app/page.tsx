@@ -228,11 +228,32 @@ export default function Home() {
     }
   };
 
-  // Abrir modal de nueva cita con especialista preseleccionada si aplica
+  // Abrir modal de nueva cita con especialista preseleccionada
   const handleAbrirModalCita = () => {
     if (especialistaSeleccionada) {
       setFormData((prev) => ({ ...prev, manicurista_nombre: especialistaSeleccionada }));
     }
+    setModalOpen(true);
+  };
+
+  // Clic directo sobre una celda vacía del grid
+  const handleDateClick = (arg: any) => {
+    const fechaSeleccionada = arg.dateStr.split('T')[0];
+    
+    let horaSeleccionada = '09:00';
+    if (arg.dateStr.includes('T')) {
+      horaSeleccionada = arg.dateStr.split('T')[1].substring(0, 5);
+    }
+
+    const especialistaAAsignar = especialistaSeleccionada || (especialistas[0]?.nombre || '');
+
+    setFormData((prev) => ({
+      ...prev,
+      fecha: fechaSeleccionada,
+      hora_inicio: horaSeleccionada,
+      manicurista_nombre: especialistaAAsignar
+    }));
+
     setModalOpen(true);
   };
 
@@ -481,6 +502,10 @@ export default function Home() {
         .fc-timegrid-body {
           position: relative !important;
         }
+
+        .fc-timegrid-slot {
+          cursor: pointer;
+        }
       `}</style>
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -488,7 +513,6 @@ export default function Home() {
         {/* Encabezado e Indicadores / Filtros de Especialistas */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Opción para mostrar todas */}
             <button
               type="button"
               onClick={() => setEspecialistaSeleccionada(null)}
@@ -603,6 +627,8 @@ export default function Home() {
             locale={esLocale}
             timeZone="local"
             hiddenDays={[0, 1]}
+            selectable={true}
+            dateClick={handleDateClick}
             nowIndicator={true}
             now={new Date().toISOString()}
             nowIndicatorContent={(args) => {
