@@ -13,12 +13,12 @@ import ReporteSemanalModal from '@/components/ReporteSemanalModal';
 const FullCalendar = dynamic(() => import('@fullcalendar/react'), { ssr: false });
 
 const COLORES_PREDEFINIDOS = [
-  { bg: '#eab308', border: '#ca8a04', text: '#1e293b' }, // Amarillo
-  { bg: '#3b82f6', border: '#1d4ed8', text: '#ffffff' }, // Azul
-  { bg: '#a855f7', border: '#7e22ce', text: '#ffffff' }, // Morado
-  { bg: '#f97316', border: '#c2410c', text: '#ffffff' }, // Naranja
-  { bg: '#ec4899', border: '#be185d', text: '#ffffff' }, // Rosado
-  { bg: '#84cc16', border: '#4d7c0f', text: '#ffffff' }, // Verde
+  { bg: '#22c55e', border: '#15803d', text: '#ffffff' },
+  { bg: '#3b82f6', border: '#1d4ed8', text: '#ffffff' },
+  { bg: '#a855f7', border: '#7e22ce', text: '#ffffff' },
+  { bg: '#f97316', border: '#c2410c', text: '#ffffff' },
+  { bg: '#ec4899', border: '#be185d', text: '#ffffff' },
+  { bg: '#84cc16', border: '#4d7c0f', text: '#ffffff' },
 ];
 
 export default function Home() {
@@ -26,9 +26,6 @@ export default function Home() {
   const [citasList, setCitasList] = useState<any[]>([]);
   const [especialistas, setEspecialistas] = useState<any[]>([]);
   const [servicios, setServicios] = useState<any[]>([]);
-
-  // Estado para filtrado por especialista
-  const [especialistaSeleccionada, setEspecialistaSeleccionada] = useState<string | null>(null);
 
   // Modales y estados
   const [modalOpen, setModalOpen] = useState(false);
@@ -139,14 +136,7 @@ export default function Home() {
           end: `${item.fecha}T${hFin}`,
           backgroundColor: colores.bg,
           textColor: colores.text,
-          borderColor: colores.border,
-          extendedProps: {
-            cliente: clienteNom,
-            servicio: servicioNom,
-            manicurista: manicuristaNom,
-            horaInicioStr: hInicio.substring(0, 5),
-            horaFinStr: hFin.substring(0, 5)
-          }
+          borderColor: 'transparent'
         };
       });
 
@@ -226,35 +216,6 @@ export default function Home() {
     if (!win || win.closed || typeof win.closed === 'undefined') {
       window.location.href = urlCliente;
     }
-  };
-
-  // Abrir modal de nueva cita con especialista preseleccionada
-  const handleAbrirModalCita = () => {
-    if (especialistaSeleccionada) {
-      setFormData((prev) => ({ ...prev, manicurista_nombre: especialistaSeleccionada }));
-    }
-    setModalOpen(true);
-  };
-
-  // Clic directo sobre una celda vacía del grid
-  const handleDateClick = (arg: any) => {
-    const fechaSeleccionada = arg.dateStr.split('T')[0];
-    
-    let horaSeleccionada = '09:00';
-    if (arg.dateStr.includes('T')) {
-      horaSeleccionada = arg.dateStr.split('T')[1].substring(0, 5);
-    }
-
-    const especialistaAAsignar = especialistaSeleccionada || (especialistas[0]?.nombre || '');
-
-    setFormData((prev) => ({
-      ...prev,
-      fecha: fechaSeleccionada,
-      hora_inicio: horaSeleccionada,
-      manicurista_nombre: especialistaAAsignar
-    }));
-
-    setModalOpen(true);
   };
 
   // Crear cita público
@@ -449,15 +410,6 @@ export default function Home() {
     }
   };
 
-  // Eventos y citas filtrados según especialistaSeleccionada
-  const eventsFiltrados = especialistaSeleccionada
-    ? events.filter((e) => e.extendedProps.manicurista.toLowerCase() === especialistaSeleccionada.toLowerCase())
-    : events;
-
-  const citasFiltradas = especialistaSeleccionada
-    ? citasList.filter((c) => c.manicurista_nombre.toLowerCase() === especialistaSeleccionada.toLowerCase())
-    : citasList;
-
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '1rem' }}>
       <style jsx global>{`
@@ -466,13 +418,6 @@ export default function Home() {
           width: 70px !important;
           min-width: 70px !important;
           overflow: visible !important;
-        }
-
-        .fc .fc-v-event {
-          border-radius: 8px !important;
-          border: none !important;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-          padding: 6px 8px !important;
         }
 
         .fc .fc-timegrid-now-indicator-arrow {
@@ -502,83 +447,26 @@ export default function Home() {
         .fc-timegrid-body {
           position: relative !important;
         }
-
-        .fc-timegrid-slot {
-          cursor: pointer;
-        }
       `}</style>
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: '#ffffff', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         
-        {/* Encabezado e Indicadores / Filtros de Especialistas */}
+        {/* Encabezado e Indicadores de Especialistas */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => setEspecialistaSeleccionada(null)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.3rem',
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                opacity: especialistaSeleccionada === null ? 1 : 0.5,
-                transform: especialistaSeleccionada === null ? 'scale(1.05)' : 'scale(1)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '50%',
-                backgroundColor: especialistaSeleccionada === null ? '#0f172a' : '#f1f5f9',
-                color: especialistaSeleccionada === null ? '#ffffff' : '#64748b',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold',
-                fontSize: '0.85rem',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-              }}>
-                TODAS
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#334155', letterSpacing: '0.05em' }}>
-                TODAS
-              </span>
-            </button>
-
+          <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {especialistas.map((esp, idx) => {
               const col = COLORES_PREDEFINIDOS[idx % COLORES_PREDEFINIDOS.length];
               const inicial = esp.nombre ? esp.nombre.charAt(0).toUpperCase() : '?';
-              const estaSeleccionada = especialistaSeleccionada?.toLowerCase() === esp.nombre.toLowerCase();
-
+              
               return (
-                <button
-                  key={esp.id || idx}
-                  type="button"
-                  onClick={() => setEspecialistaSeleccionada(estaSeleccionada ? null : esp.nombre)}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.3rem',
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    opacity: especialistaSeleccionada === null || estaSeleccionada ? 1 : 0.4,
-                    transform: estaSeleccionada ? 'scale(1.08)' : 'scale(1)',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
+                <div key={esp.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
                   <div style={{
                     width: '42px',
                     height: '42px',
                     borderRadius: '50%',
-                    backgroundColor: estaSeleccionada ? col.border : '#ffffff',
+                    backgroundColor: '#ffffff',
                     border: `2px solid ${col.border}`,
-                    color: estaSeleccionada ? '#ffffff' : col.border,
+                    color: col.border,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -591,7 +479,7 @@ export default function Home() {
                   <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#334155', letterSpacing: '0.05em' }}>
                     {esp.nombre ? esp.nombre.toUpperCase() : ''}
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -606,13 +494,11 @@ export default function Home() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>
-              Agenda Avocado Spa {especialistaSeleccionada ? `- ${especialistaSeleccionada.toUpperCase()}` : ''}
-            </h1>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Agenda Avocado Spa</h1>
             <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Horario de atención: Martes a Sábado, 9:00 AM - 5:00 PM</p>
           </div>
           <button
-            onClick={handleAbrirModalCita}
+            onClick={() => setModalOpen(true)}
             style={{ backgroundColor: '#65a30d', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer', border: 'none' }}
           >
             + Nueva Cita
@@ -627,21 +513,19 @@ export default function Home() {
             locale={esLocale}
             timeZone="local"
             hiddenDays={[0, 1]}
-            selectable={true}
-            dateClick={handleDateClick}
             nowIndicator={true}
-now={new Date()}
-nowIndicatorContent={(args) => {
-  if (args.isAxis) {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const hours12 = hours % 12 === 0 ? 12 : hours % 12;
-    const minutesFormatted = minutes < 10 ? `0${minutes}` : minutes;
-    return <span>{`${hours12}:${minutesFormatted}`}</span>;
-  }
-  return null;
-}}
+            now={new Date().toISOString()}
+            nowIndicatorContent={(args) => {
+              if (args.isAxis) {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                const hours12 = hours % 12 === 0 ? 12 : hours % 12;
+                const minutesFormatted = minutes < 10 ? `0${minutes}` : minutes;
+                return <span>{`${hours12}:${minutesFormatted}`}</span>;
+              }
+              return null;
+            }}
             height="auto"
             headerToolbar={{
               left: 'prev,next today',
@@ -656,23 +540,7 @@ nowIndicatorContent={(args) => {
             slotMinTime="09:00:00"
             slotMaxTime="18:00:00"
             allDaySlot={false}
-            events={eventsFiltrados}
-            eventContent={(eventInfo) => {
-              const { cliente, servicio, horaInicioStr, horaFinStr } = eventInfo.event.extendedProps;
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'flex-start', color: eventInfo.event.textColor }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 'bold', opacity: 0.9 }}>
-                    {horaInicioStr} - {horaFinStr}
-                  </div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '800', margin: '2px 0 1px 0', lineHeight: '1.1' }}>
-                    {cliente}
-                  </div>
-                  <div style={{ fontSize: '0.73rem', fontWeight: '600', textTransform: 'uppercase', opacity: 0.95 }}>
-                    {servicio}
-                  </div>
-                </div>
-              );
-            }}
+            events={events}
           />
         </div>
 
@@ -840,7 +708,7 @@ nowIndicatorContent={(args) => {
                     onClick={() => setAdminTab('citas')}
                     style={{ padding: '0.5rem 1rem', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', borderBottom: adminTab === 'citas' ? '3px solid #65a30d' : 'transparent', color: adminTab === 'citas' ? '#65a30d' : '#4b5563' }}
                   >
-                    📅 Citas ({citasFiltradas.length})
+                    📅 Citas ({citasList.length})
                   </button>
                   <button
                     onClick={() => setAdminTab('especialistas')}
@@ -934,12 +802,12 @@ nowIndicatorContent={(args) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {citasFiltradas.length === 0 ? (
+                          {citasList.length === 0 ? (
                             <tr>
                               <td colSpan={6} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>No hay citas registradas.</td>
                             </tr>
                           ) : (
-                            citasFiltradas.map((cita) => (
+                            citasList.map((cita) => (
                               <tr key={cita.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                                 <td style={{ padding: '0.5rem' }}>{cita.fecha}</td>
                                 <td style={{ padding: '0.5rem' }}>{cita.hora_inicio} - {cita.hora_fin}</td>

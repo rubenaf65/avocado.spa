@@ -24,32 +24,34 @@
   z-index: 30 !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   white-space: nowrap !important;
-  position: relative !important; /* Necesario para la proyección */
+  position: relative !important;
 }
 
-/* 3. El Truco Definivo: Proyectar la franja roja CONTINUA desde el globo */
+/* 3. Proyectar la franja roja CONTINUA a lo largo del grid */
 .fc .fc-timegrid-now-indicator-arrow::before {
   content: '' !important;
   position: absolute !important;
-  top: 50% !important; /* Centrado vertical con el globo */
-  left: 100% !important; /* Empieza exactamente donde termina el globo */
-  
-  /* Un ancho exagerado para cruzar siempre todas las columnas de la semana */
-  width: 2000px !important; 
-  height: 2px !important; /* Grosor idéntico al borde del globo */
-  
-  background-color: #dc2626 !important; /* Mismo color rojo */
-  pointer-events: none !important; /* Para que no interfiera con clics en citas */
-  z-index: 25 !important; /* Por encima de las celdas, por debajo del globo */
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  left: 100% !important;
+  width: 3000px !important;
+  height: 2px !important;
+  background-color: #dc2626 !important;
+  pointer-events: none !important;
+  z-index: 25 !important;
 }
 
-/* 4. Ocultar la línea horizontal nativa de FullCalendar */
+/* 4. Ocultar la línea horizontal nativa por defecto de FullCalendar */
 .fc .fc-timegrid-now-indicator-line {
   display: none !important;
 }
 
-/* 5. Asegurar que los contenedores superiores no recorten la línea proyectada */
+/* 5. Asegurar que los contenedores no recorten la línea proyectada */
+.fc,
+.fc .fc-timegrid,
 .fc .fc-timegrid-body,
-.fc-theme-standard .fc-scrollgrid {
+.fc-theme-standard .fc-scrollgrid,
+.fc-scrollgrid-sync-table,
+.fc-timegrid-slots {
   overflow: visible !important;
 }

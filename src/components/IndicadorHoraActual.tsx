@@ -4,13 +4,13 @@ import React, { useState, useEffect } from 'react';
 
 interface IndicadorHoraProps {
   startHour?: number; // Hora inicio cuadrante (default: 9 para las 9:00 AM)
-  endHour?: number;   // Hora fin cuadrante (default: 17 para las 5:00 PM / 17:00)
+  endHour?: number;   // Hora fin cuadrante (default: 18 para las 5:00 PM / 17:00)
   rowHeight?: number; // Altura en píxeles de cada bloque de hora (ajusta si difiere)
 }
 
 export default function IndicadorHoraActual({
   startHour = 9,
-  endHour = 17,
+  endHour = 18,
   rowHeight = 60
 }: IndicadorHoraProps) {
   const [now, setNow] = useState<Date | null>(null);
